@@ -1,0 +1,99 @@
+# ================================
+# Dependencies
+# ================================
+node_modules/
+.pnp
+.pnp.js
+
+# ================================
+# Next.js
+# ================================
+apps/web/.next/
+apps/web/out/
+apps/web/build/
+
+# ================================
+# NestJS / Node build
+# ================================
+apps/api/dist/
+apps/api/build/
+
+# ================================
+# Python
+# ================================
+apps/python/venv/
+apps/python/__pycache__/
+apps/python/*.pyc
+apps/python/*.pyo
+apps/python/*.pyd
+apps/python/.Python
+apps/python/*.egg-info/
+apps/python/dist/
+apps/python/build/
+apps/python/.pytest_cache/
+apps/python/.mypy_cache/
+
+# ================================
+# Dados (não versionar CSVs pesados)
+# ================================
+apps/python/data/
+*.csv
+*.parquet
+
+# ================================
+# Variáveis de ambiente
+# ================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ================================
+# Logs
+# ================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# ================================
+# Docker
+# ================================
+.docker/
+
+# ================================
+# Sistema operacional
+# ================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ================================
+# Editor
+# ================================
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ================================
+# Testes
+# ================================
+coverage/
+.nyc_output/
+
+# ================================
+# Misc
+# ================================
+*.tsbuildinfo
+.eslintcache
