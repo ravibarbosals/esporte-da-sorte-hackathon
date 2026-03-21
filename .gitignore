@@ -41,6 +41,18 @@ apps/python/data/
 *.parquet
 
 # ================================
+# Python (pycache global)
+# ================================
+**/__pycache__/
+**/*.pyc
+
+# ================================
+# Dados JSON brutos (StatsBomb)
+# ================================
+apps/python/data/raw/*.json
+apps/python/data/processed/*.json
+
+# ================================
 # Variáveis de ambiente
 # ================================
 .env
