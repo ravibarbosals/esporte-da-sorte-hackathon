@@ -7,6 +7,7 @@ import { InsightsModule } from './modules/insights/insights.module';
 import { PlayersModule } from './modules/players/players.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { MatchesModule } from './modules/matches/matches.module';
+import { PredictionsModule } from './modules/predictions/predictions.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { MatchesModule } from './modules/matches/matches.module';
     PlayersModule,
     TeamsModule,
     MatchesModule,
+    PredictionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
