@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from services.players import get_top_scorers, get_team_stats, get_team_risk, get_player_profile
 from services.statsbomb import get_match_results, get_team_form
 from services.betsapi import get_upcoming_matches, get_match_odds
+from services.predictions import predict_match
+from services.indicators import get_all_indicators
 import json
 import os
 
@@ -121,3 +123,15 @@ def match_history(competition_id: int, season_id: int):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+# --- PREVISÕES  ---
+
+@app.get("/predictions/{home_team}/{away_team}")
+def get_prediction(home_team: str, away_team: str):
+    return predict_match(home_team, away_team)
+
+# --- INDICADORES ---
+
+@app.get("/indicators/{home_team}/{away_team}")
+def get_indicators(home_team: str, away_team: str):
+    return get_all_indicators(home_team, away_team)
