@@ -3,6 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { InsightsModule } from './modules/insights/insights.module';
+import { PlayersModule } from './modules/players/players.module';
+import { TeamsModule } from './modules/teams/teams.module';
+import { MatchesModule } from './modules/matches/matches.module';
 
 @Module({
   imports: [
@@ -19,6 +23,10 @@ import { AppService } from './app.service';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
+    InsightsModule,
+    PlayersModule,
+    TeamsModule,
+    MatchesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
