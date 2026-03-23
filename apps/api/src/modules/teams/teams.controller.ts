@@ -15,8 +15,8 @@ export class TeamsController {
     return this.teamsService.getTopScoringTeams(Number(limit));
   }
 
-  @Get(':squad')
-  getTeamStats(@Param('squad') squad: string) {
-    return this.teamsService.getTeamStats(squad);
+  @Get(':time')
+  getTeamStats(@Param('time') time: string) {
+    return this.teamsService.getTeamStats(time);
   }
 }

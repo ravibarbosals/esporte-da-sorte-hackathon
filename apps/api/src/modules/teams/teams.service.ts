@@ -10,29 +10,31 @@ export class TeamsService {
     private playerRepository: Repository<Player>,
   ) {}
 
-  async getTeamStats(squad: string) {
-    return this.playerRepository
-      .createQueryBuilder('p')
-      .select('p.squad', 'squad')
-      .addSelect('p.comp', 'comp')
-      .addSelect('SUM(p.gls)', 'total_gols')
-      .addSelect('SUM(p.ast)', 'total_assistencias')
-      .addSelect('SUM(p.crdy)', 'total_amarelos')
-      .addSelect('SUM(p.crdr)', 'total_vermelhos')
-      .where('p.squad = :squad', { squad })
-      .getRawOne();
-  }
+  async getTeamStats(time: string) {
+  return this.playerRepository
+    .createQueryBuilder('p')
+    .select('p.time', 'time')
+    .addSelect('p.liga', 'liga')
+    .addSelect('SUM(p.gols)', 'total_gols')
+    .addSelect('SUM(p.assistencias)', 'total_assistencias')
+    .addSelect('SUM(p.cartoesAmarelos)', 'total_amarelos')
+    .addSelect('SUM(p.cartoesVermelhos)', 'total_vermelhos')
+    .where('p.time = :time', { time })
+    .groupBy('p.time')
+    .addGroupBy('p.liga')
+    .getRawOne();
+}
 
   async getMostAggressiveTeams(limit = 10) {
     return this.playerRepository
       .createQueryBuilder('p')
-      .select('p.squad', 'squad')
-      .addSelect('p.comp', 'comp')
-      .addSelect('SUM(p.crdy)', 'total_amarelos')
-      .addSelect('SUM(p.crdr)', 'total_vermelhos')
-      .groupBy('p.squad')
-      .addGroupBy('p.comp')
-      .orderBy('SUM(p.crdy)', 'DESC')
+      .select('p.time', 'time')
+      .addSelect('p.liga', 'liga')
+      .addSelect('SUM(p.cartoesamarelos)', 'total_amarelos')
+      .addSelect('SUM(p.cartoesvermelhos)', 'total_vermelhos')
+      .groupBy('p.time')
+      .addGroupBy('p.liga')
+      .orderBy('SUM(p.cartoesamarelos)', 'DESC')
       .take(limit)
       .getRawMany();
   }
@@ -40,13 +42,13 @@ export class TeamsService {
   async getTopScoringTeams(limit = 10) {
     return this.playerRepository
       .createQueryBuilder('p')
-      .select('p.squad', 'squad')
-      .addSelect('p.comp', 'comp')
-      .addSelect('SUM(p.gls)', 'total_gols')
-      .addSelect('SUM(p.ast)', 'total_assistencias')
-      .groupBy('p.squad')
-      .addGroupBy('p.comp')
-      .orderBy('SUM(p.gls)', 'DESC')
+      .select('p.time', 'time')
+      .addSelect('p.liga', 'liga')
+      .addSelect('SUM(p.gols)', 'total_gols')
+      .addSelect('SUM(p.assistencias)', 'total_assistencias')
+      .groupBy('p.time')
+      .addGroupBy('p.liga')
+      .orderBy('SUM(p.gols)', 'DESC')
       .take(limit)
       .getRawMany();
   }

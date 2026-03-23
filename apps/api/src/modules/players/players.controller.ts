@@ -15,9 +15,9 @@ export class PlayersController {
     return this.playersService.topScorers(Number(limit));
   }
 
-  @Get('squad/:squad')
-  findBySquad(@Param('squad') squad: string) {
-    return this.playersService.findByTime(squad);
+  @Get('time/:time')
+  findBySquad(@Param('time') time: string) {
+    return this.playersService.findByTime(time);
   }
 
   @Get(':name')
