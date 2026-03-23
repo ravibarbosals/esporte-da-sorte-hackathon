@@ -28,9 +28,9 @@ export class PlayersService {
     });
   }
 
-  async findByNome(nomeJogador: string) {
+  async findByNome(nomejogador: string) {
     return this.playerRepository.findOne({
-      where: { nomeJogador },
+      where: { nomejogador },
     });
   }
 

@@ -7,211 +7,211 @@ export class Player {
   @ApiProperty({ description: 'Ranking do jogador.', example: 1 })
   ranking: number;
 
-  @Column({ name: 'player', type: 'varchar', nullable: true, comment: 'Nome completo do jogador.' })
+  @Column({ name: 'nomejogador', type: 'varchar', nullable: true, comment: 'Nome completo do jogador.' })
   @ApiProperty({ description: 'Nome do jogador.', example: 'Brenden Aaronson' })
-  nomeJogador: string;
+  nomejogador: string;
 
-  @Column({ name: 'nation', type: 'varchar', nullable: true, comment: 'Nacionalidade do jogador.' })
+  @Column({ name: 'nacionalidade', type: 'varchar', nullable: true, comment: 'Nacionalidade do jogador.' })
   @ApiProperty({ description: 'Nacionalidade.', example: 'us USA' })
   nacionalidade: string;
 
-  @Column({ name: 'pos', type: 'varchar', nullable: true, comment: 'Posição em campo.' })
+  @Column({ name: 'posicao', type: 'varchar', nullable: true, comment: 'Posição em campo.' })
   @ApiProperty({ description: 'Posição.', example: 'MF,FW' })
   posicao: string;
 
-  @Column({ name: 'squad', type: 'varchar', nullable: true, comment: 'Time atual do jogador.' })
+  @Column({ name: 'time', type: 'varchar', nullable: true, comment: 'Time atual do jogador.' })
   @ApiProperty({ description: 'Time.', example: 'Leeds United' })
   time: string;
 
-  @Column({ name: 'comp', type: 'varchar', nullable: true, comment: 'Liga em que atua.' })
+  @Column({ name: 'liga', type: 'varchar', nullable: true, comment: 'Liga em que atua.' })
   @ApiProperty({ description: 'Liga.', example: 'eng Premier League' })
   liga: string;
 
-  @Column({ name: 'born', type: 'varchar', nullable: true, comment: 'Ano de nascimento do jogador.' })
+  @Column({ name: 'anonascimento', type: 'varchar', nullable: true, comment: 'Ano de nascimento do jogador.' })
   @ApiProperty({ description: 'Ano de nascimento.', example: '2000' })
-  anoNascimento: string;
+  anonascimento: string;
 
-  @Column({ name: 'mp', type: 'float', nullable: true, comment: 'Total de partidas jogadas na temporada.' })
+  @Column({ name: 'partidasjogadas', type: 'float', nullable: true, comment: 'Total de partidas jogadas na temporada.' })
   @ApiProperty({ description: 'Partidas jogadas.', example: 29 })
-  partidasJogadas: number;
+  partidasjogadas: number;
 
-  @Column({ name: 'starts', type: 'float', nullable: true, comment: 'Partidas iniciadas como titular.' })
+  @Column({ name: 'partidastitular', type: 'float', nullable: true, comment: 'Partidas iniciadas como titular.' })
   @ApiProperty({ description: 'Partidas como titular.', example: 23 })
-  partidasTitular: number;
+  partidastitular: number;
 
-  @Column({ name: 'min', type: 'float', nullable: true, comment: 'Total de minutos jogados na temporada.' })
+  @Column({ name: 'minutosjogados', type: 'float', nullable: true, comment: 'Total de minutos jogados na temporada.' })
   @ApiProperty({ description: 'Minutos jogados.', example: 1908 })
-  minutosJogados: number;
+  minutosjogados: number;
 
-  @Column({ name: '90s', type: 'float', nullable: true, comment: 'Equivalente em jogos completos de 90 minutos.' })
+  @Column({ name: 'jogoscompletos', type: 'float', nullable: true, comment: 'Equivalente em jogos completos de 90 minutos.' })
   @ApiProperty({ description: 'Jogos de 90 minutos equivalentes.', example: 21.2 })
-  jogosCompletos: number;
+  jogoscompletos: number;
 
-  @Column({ name: 'gls', type: 'float', nullable: true, comment: 'Total de gols marcados na temporada.' })
+  @Column({ name: 'gols', type: 'float', nullable: true, comment: 'Total de gols marcados na temporada.' })
   @ApiProperty({ description: 'Gols marcados.', example: 4 })
   gols: number;
 
-  @Column({ name: 'ast', type: 'float', nullable: true, comment: 'Total de assistências na temporada.' })
+  @Column({ name: 'assistencias', type: 'float', nullable: true, comment: 'Total de assistências na temporada.' })
   @ApiProperty({ description: 'Assistências.', example: 3 })
   assistencias: number;
 
-  @Column({ name: 'G+A', type: 'float', nullable: true, comment: 'Soma de gols e assistências.' })
+  @Column({ name: 'golsmaisassistencias', type: 'float', nullable: true, comment: 'Soma de gols e assistências.' })
   @ApiProperty({ description: 'Gols + Assistências.', example: 7 })
-  golsMaisAssistencias: number;
+  golsmaisassistencias: number;
 
-  @Column({ name: 'G-PK', type: 'float', nullable: true, comment: 'Gols marcados excluindo pênaltis.' })
+  @Column({ name: 'golssempenalti', type: 'float', nullable: true, comment: 'Gols marcados excluindo pênaltis.' })
   @ApiProperty({ description: 'Gols sem pênaltis.', example: 4 })
-  golsSemPenalti: number;
+  golssempenalti: number;
 
-  @Column({ name: 'pk', type: 'float', nullable: true, comment: 'Pênaltis convertidos.' })
+  @Column({ name: 'penaltisconvertidos', type: 'float', nullable: true, comment: 'Pênaltis convertidos.' })
   @ApiProperty({ description: 'Pênaltis convertidos.', example: 0 })
-  penaltisConvertidos: number;
+  penaltisconvertidos: number;
 
-  @Column({ name: 'pkatt', type: 'float', nullable: true, comment: 'Total de pênaltis cobrados.' })
+  @Column({ name: 'penaltiscobrados', type: 'float', nullable: true, comment: 'Total de pênaltis cobrados.' })
   @ApiProperty({ description: 'Pênaltis cobrados.', example: 0 })
-  penaltisCobrados: number;
+  penaltiscobrados: number;
 
-  @Column({ name: 'crdy', type: 'float', nullable: true, comment: 'Cartões amarelos recebidos.' })
+  @Column({ name: 'cartoesamarelos', type: 'float', nullable: true, comment: 'Cartões amarelos recebidos.' })
   @ApiProperty({ description: 'Cartões amarelos.', example: 1 })
-  cartoesAmarelos: number;
+  cartoesamarelos: number;
 
-  @Column({ name: 'crdr', type: 'float', nullable: true, comment: 'Cartões vermelhos recebidos.' })
+  @Column({ name: 'cartoesvermelhos', type: 'float', nullable: true, comment: 'Cartões vermelhos recebidos.' })
   @ApiProperty({ description: 'Cartões vermelhos.', example: 0 })
-  cartoesVermelhos: number;
+  cartoesvermelhos: number;
 
-  @Column({ name: 'G+A-PK', type: 'float', nullable: true, comment: 'Gols e assistências excluindo pênaltis.' })
+  @Column({ name: 'golsmaisassistenciassempenalti', type: 'float', nullable: true, comment: 'Gols e assistências excluindo pênaltis.' })
   @ApiProperty({ description: 'Gols + Assistências sem pênaltis.', example: 7 })
-  golsMaisAssistenciasSemPenalti: number;
+  golsmaisassistenciassempenalti: number;
 
-  @Column({ name: 'sh', type: 'float', nullable: true, comment: 'Total de chutes realizados.' })
+  @Column({ name: 'chutestotais', type: 'float', nullable: true, comment: 'Total de chutes realizados.' })
   @ApiProperty({ description: 'Chutes totais.', example: 40 })
-  chutesTotais: number;
+  chutestotais: number;
 
-  @Column({ name: 'sot', type: 'float', nullable: true, comment: 'Chutes que foram no alvo.' })
+  @Column({ name: 'chutesnoalvo', type: 'float', nullable: true, comment: 'Chutes que foram no alvo.' })
   @ApiProperty({ description: 'Chutes no alvo.', example: 15 })
-  chutesNoAlvo: number;
+  chutesnoalvo: number;
 
-  @Column({ name: 'SoT%', type: 'float', nullable: true, comment: 'Percentual de chutes no alvo sobre o total.' })
+  @Column({ name: 'percentualchutesnoalvo', type: 'float', nullable: true, comment: 'Percentual de chutes no alvo sobre o total.' })
   @ApiProperty({ description: '% chutes no alvo.', example: 37.5 })
-  percentualChutesNoAlvo: number;
+  percentualchutesnoalvo: number;
 
-  @Column({ name: 'Sh/90', type: 'float', nullable: true, comment: 'Média de chutes por 90 minutos jogados.' })
+  @Column({ name: 'chutespor90min', type: 'float', nullable: true, comment: 'Média de chutes por 90 minutos jogados.' })
   @ApiProperty({ description: 'Chutes por 90 min.', example: 1.89 })
-  chutesPor90min: number;
+  chutespor90min: number;
 
-  @Column({ name: 'SoT/90', type: 'float', nullable: true, comment: 'Média de chutes no alvo por 90 minutos.' })
+  @Column({ name: 'chutesnoalvopor90min', type: 'float', nullable: true, comment: 'Média de chutes no alvo por 90 minutos.' })
   @ApiProperty({ description: 'Chutes no alvo por 90 min.', example: 0.71 })
-  chutesNoAlvoPor90min: number;
+  chutesnoalvopor90min: number;
 
-  @Column({ name: 'G/Sh', type: 'float', nullable: true, comment: 'Eficiência de finalização: gols por chute.' })
+  @Column({ name: 'golsporchute', type: 'float', nullable: true, comment: 'Eficiência de finalização: gols por chute.' })
   @ApiProperty({ description: 'Gols por chute.', example: 0.1 })
-  golsPorChute: number;
+  golsporchute: number;
 
-  @Column({ name: 'G/SoT', type: 'float', nullable: true, comment: 'Gols marcados por chute no alvo.' })
+  @Column({ name: 'golsporchutenoalvo', type: 'float', nullable: true, comment: 'Gols marcados por chute no alvo.' })
   @ApiProperty({ description: 'Gols por chute no alvo.', example: 0.27 })
-  golsPorChuteNoAlvo: number;
+  golsporchutenoalvo: number;
 
-  @Column({ name: 'pk_stats_shooting', type: 'float', nullable: true, comment: 'Pênaltis convertidos (estatísticas de chute).' })
+  @Column({ name: 'penaltisconvertidoschute', type: 'float', nullable: true, comment: 'Pênaltis convertidos (estatísticas de chute).' })
   @ApiProperty({ description: 'Pênaltis convertidos (chute).', example: 0 })
-  penaltisConvertidosChute: number;
+  penaltisconvertidoschute: number;
 
-  @Column({ name: 'pkatt_stats_shooting', type: 'float', nullable: true, comment: 'Pênaltis cobrados (estatísticas de chute).' })
+  @Column({ name: 'penaltiscobradoschute', type: 'float', nullable: true, comment: 'Pênaltis cobrados (estatísticas de chute).' })
   @ApiProperty({ description: 'Pênaltis cobrados (chute).', example: 0 })
-  penaltisCobradosChute: number;
+  penaltiscobradoschute: number;
 
-  @Column({ name: 'crs', type: 'float', nullable: true, comment: 'Total de cruzamentos realizados.' })
+  @Column({ name: 'cruzamentos', type: 'float', nullable: true, comment: 'Total de cruzamentos realizados.' })
   @ApiProperty({ description: 'Cruzamentos.', example: 35 })
   cruzamentos: number;
 
-  @Column({ name: 'tklw', type: 'float', nullable: true, comment: 'Desarmes vencidos.' })
+  @Column({ name: 'desarmesvencidos', type: 'float', nullable: true, comment: 'Desarmes vencidos.' })
   @ApiProperty({ description: 'Desarmes vencidos.', example: 22 })
-  desarmesVencidos: number;
+  desarmesvencidos: number;
 
-  @Column({ name: 'Int', type: 'float', nullable: true, comment: 'Total de interceptações realizadas.' })
+  @Column({ name: 'interceptacoes', type: 'float', nullable: true, comment: 'Total de interceptações realizadas.' })
   @ApiProperty({ description: 'Interceptações.', example: 13 })
   interceptacoes: number;
 
-  @Column({ name: 'fld', type: 'float', nullable: true, comment: 'Faltas sofridas pelo jogador.' })
+  @Column({ name: 'faltassofridas', type: 'float', nullable: true, comment: 'Faltas sofridas pelo jogador.' })
   @ApiProperty({ description: 'Faltas sofridas.', example: 41 })
-  faltasSofridas: number;
+  faltassofridas: number;
 
-  @Column({ name: 'crdy_stats_misc', type: 'float', nullable: true, comment: 'Cartões amarelos (estatísticas misc).' })
+  @Column({ name: 'cartoesamarelosmisc', type: 'float', nullable: true, comment: 'Cartões amarelos (estatísticas misc).' })
   @ApiProperty({ description: 'Cartões amarelos misc.', example: 1 })
-  cartoesAmarelosMisc: number;
+  cartoesamarelosmisc: number;
 
-  @Column({ name: 'crdr_stats_misc', type: 'float', nullable: true, comment: 'Cartões vermelhos (estatísticas misc).' })
+  @Column({ name: 'cartoesvermelhosmisc', type: 'float', nullable: true, comment: 'Cartões vermelhos (estatísticas misc).' })
   @ApiProperty({ description: 'Cartões vermelhos misc.', example: 0 })
-  cartoesVermelhosMisc: number;
+  cartoesvermelhosmisc: number;
 
-  @Column({ name: '2CrdY', type: 'float', nullable: true, comment: 'Expulsões por segundo cartão amarelo.' })
+  @Column({ name: 'segundocartaoamarelo', type: 'float', nullable: true, comment: 'Expulsões por segundo cartão amarelo.' })
   @ApiProperty({ description: 'Segundo cartão amarelo.', example: 0 })
-  segundoCartaoAmarelo: number;
+  segundocartaoamarelo: number;
 
-  @Column({ name: 'fls', type: 'float', nullable: true, comment: 'Faltas cometidas pelo jogador.' })
+  @Column({ name: 'faltascometidas', type: 'float', nullable: true, comment: 'Faltas cometidas pelo jogador.' })
   @ApiProperty({ description: 'Faltas cometidas.', example: 17 })
-  faltasCometidas: number;
+  faltascometidas: number;
 
-  @Column({ name: 'og', type: 'float', nullable: true, comment: 'Gols contra marcados.' })
+  @Column({ name: 'golscontra', type: 'float', nullable: true, comment: 'Gols contra marcados.' })
   @ApiProperty({ description: 'Gols contra.', example: 0 })
-  golsContra: number;
+  golscontra: number;
 
-  @Column({ name: 'ga', type: 'float', nullable: true, comment: 'Gols sofridos (goleiros).' })
+  @Column({ name: 'golssofridos', type: 'float', nullable: true, comment: 'Gols sofridos (goleiros).' })
   @ApiProperty({ description: 'Gols sofridos.', example: 0 })
-  golsSofridos: number;
+  golssofridos: number;
 
-  @Column({ name: 'ga90', type: 'float', nullable: true, comment: 'Gols sofridos por 90 minutos (goleiros).' })
+  @Column({ name: 'golssofridospor90min', type: 'float', nullable: true, comment: 'Gols sofridos por 90 minutos (goleiros).' })
   @ApiProperty({ description: 'Gols sofridos por 90 min.', example: 0 })
-  golsSofridosPor90min: number;
+  golssofridospor90min: number;
 
-  @Column({ name: 'sota', type: 'float', nullable: true, comment: 'Chutes a gol sofridos (goleiros).' })
+  @Column({ name: 'chutesagolsofridos', type: 'float', nullable: true, comment: 'Chutes a gol sofridos (goleiros).' })
   @ApiProperty({ description: 'Chutes a gol sofridos.', example: 0 })
-  chutesAGolSofridos: number;
+  chutesagolsofridos: number;
 
-  @Column({ name: 'saves', type: 'float', nullable: true, comment: 'Defesas realizadas (goleiros).' })
+  @Column({ name: 'defesas', type: 'float', nullable: true, comment: 'Defesas realizadas (goleiros).' })
   @ApiProperty({ description: 'Defesas.', example: 0 })
   defesas: number;
 
-  @Column({ name: 'Save%', type: 'float', nullable: true, comment: 'Percentual de defesas (goleiros).' })
+  @Column({ name: 'percentualdefesas', type: 'float', nullable: true, comment: 'Percentual de defesas (goleiros).' })
   @ApiProperty({ description: '% defesas.', example: 0 })
-  percentualDefesas: number;
+  percentualdefesas: number;
 
-  @Column({ name: 'w', type: 'float', nullable: true, comment: 'Vitórias do time quando o goleiro atuou.' })
+  @Column({ name: 'vitorias', type: 'float', nullable: true, comment: 'Vitórias do time quando o goleiro atuou.' })
   @ApiProperty({ description: 'Vitórias (goleiro).', example: 0 })
   vitorias: number;
 
-  @Column({ name: 'd', type: 'float', nullable: true, comment: 'Empates do time quando o goleiro atuou.' })
+  @Column({ name: 'empates', type: 'float', nullable: true, comment: 'Empates do time quando o goleiro atuou.' })
   @ApiProperty({ description: 'Empates (goleiro).', example: 0 })
   empates: number;
 
-  @Column({ name: 'l', type: 'float', nullable: true, comment: 'Derrotas do time quando o goleiro atuou.' })
+  @Column({ name: 'derrotas', type: 'float', nullable: true, comment: 'Derrotas do time quando o goleiro atuou.' })
   @ApiProperty({ description: 'Derrotas (goleiro).', example: 0 })
   derrotas: number;
 
-  @Column({ name: 'cs', type: 'float', nullable: true, comment: 'Clean sheets (goleiros).' })
+  @Column({ name: 'cleansheets', type: 'float', nullable: true, comment: 'Clean sheets (goleiros).' })
   @ApiProperty({ description: 'Clean sheets.', example: 0 })
-  cleanSheets: number;
+  cleansheets: number;
 
-  @Column({ name: 'CS%', type: 'float', nullable: true, comment: 'Percentual de clean sheets (goleiros).' })
+  @Column({ name: 'percentualcleansheets', type: 'float', nullable: true, comment: 'Percentual de clean sheets (goleiros).' })
   @ApiProperty({ description: '% clean sheets.', example: 0 })
-  percentualCleanSheets: number;
+  percentualcleansheets: number;
 
-  @Column({ name: 'pkatt_stats_keeper', type: 'float', nullable: true, comment: 'Pênaltis cobrados contra o goleiro.' })
+  @Column({ name: 'penaltiscontragoleiro', type: 'float', nullable: true, comment: 'Pênaltis cobrados contra o goleiro.' })
   @ApiProperty({ description: 'Pênaltis cobrados contra.', example: 0 })
-  penaltisContraGoleiro: number;
+  penaltiscontragoleiro: number;
 
-  @Column({ name: 'pka', type: 'float', nullable: true, comment: 'Pênaltis sofridos (goleiros).' })
+  @Column({ name: 'penaltissofridos', type: 'float', nullable: true, comment: 'Pênaltis sofridos (goleiros).' })
   @ApiProperty({ description: 'Pênaltis sofridos.', example: 0 })
-  penaltisSofridos: number;
+  penaltissofridos: number;
 
-  @Column({ name: 'pksv', type: 'float', nullable: true, comment: 'Pênaltis defendidos pelo goleiro.' })
+  @Column({ name: 'penaltisdefendidos', type: 'float', nullable: true, comment: 'Pênaltis defendidos pelo goleiro.' })
   @ApiProperty({ description: 'Pênaltis defendidos.', example: 0 })
-  penaltisDefendidos: number;
+  penaltisdefendidos: number;
 
-  @Column({ name: 'pkm', type: 'float', nullable: true, comment: 'Pênaltis perdidos pelo adversário.' })
+  @Column({ name: 'penaltisperdidosadversario', type: 'float', nullable: true, comment: 'Pênaltis perdidos pelo adversário.' })
   @ApiProperty({ description: 'Pênaltis perdidos pelo adversário.', example: 0 })
-  penaltisPerdidosAdversario: number;
+  penaltisperdidosadversario: number;
 
-  @Column({ name: 'age', type: 'float', nullable: true, comment: 'Idade atual do jogador.' })
+  @Column({ name: 'idade', type: 'float', nullable: true, comment: 'Idade atual do jogador.' })
   @ApiProperty({ description: 'Idade.', example: 26 })
   idade: number;
 }
