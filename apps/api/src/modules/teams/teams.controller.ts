@@ -1,22 +1,22 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { TeamsService } from './teams.service';
 
 @Controller('teams')
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
-  @Get()
-  findAll() {
-    return this.teamsService.findAll();
+  @Get('most-aggressive')
+  getMostAggressive(@Query('limit') limit = 10) {
+    return this.teamsService.getMostAggressiveTeams(Number(limit));
   }
 
-  @Get('league/:comp')
-  findByComp(@Param('comp') comp: string) {
-    return this.teamsService.findByComp(comp);
+  @Get('top-scoring')
+  getTopScoring(@Query('limit') limit = 10) {
+    return this.teamsService.getTopScoringTeams(Number(limit));
   }
 
-  @Get(':name')
-  findByName(@Param('name') name: string) {
-    return this.teamsService.findByName(name);
+  @Get(':squad')
+  getTeamStats(@Param('squad') squad: string) {
+    return this.teamsService.getTeamStats(squad);
   }
 }

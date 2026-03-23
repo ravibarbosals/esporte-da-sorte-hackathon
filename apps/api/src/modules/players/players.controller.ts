@@ -17,11 +17,11 @@ export class PlayersController {
 
   @Get('squad/:squad')
   findBySquad(@Param('squad') squad: string) {
-    return this.playersService.findBySquad(squad);
+    return this.playersService.findByTime(squad);
   }
 
   @Get(':name')
   findByName(@Param('name') name: string) {
-    return this.playersService.findByName(name);
+    return this.playersService.findByNome(name);
   }
 }

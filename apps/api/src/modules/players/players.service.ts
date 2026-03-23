@@ -11,33 +11,62 @@ export class PlayersService {
   ) {}
 
   async findAll() {
-    return this.playerRepository.find({
-      order: { goals: 'DESC' },
-    });
-  }
-
-  async findBySquad(squad: string) {
-    return this.playerRepository.find({
-      where: { squad },
-      order: { goals: 'DESC' },
-    });
-  }
-
-  async findByName(name: string) {
-    return this.playerRepository.findOne({
-      where: { name },
-    });
+    return this.playerRepository.find();
   }
 
   async topScorers(limit = 10) {
     return this.playerRepository.find({
-      order: { goals: 'DESC' },
+      order: { gols: 'DESC' },
       take: limit,
     });
   }
 
-  async bulkCreate(data: Partial<Player>[]) {
-    const players = this.playerRepository.create(data);
-    return this.playerRepository.save(players);
+  async findByTime(time: string) {
+    return this.playerRepository.find({
+      where: { time },
+      order: { gols: 'DESC' },
+    });
+  }
+
+  async findByNome(nomeJogador: string) {
+    return this.playerRepository.findOne({
+      where: { nomeJogador },
+    });
+  }
+
+  async findByLiga(liga: string) {
+    return this.playerRepository.find({
+      where: { liga },
+      order: { gols: 'DESC' },
+    });
+  }
+
+  async maisPerigosos(limit = 10) {
+    return this.playerRepository
+      .createQueryBuilder('p')
+      .where('p.gols IS NOT NULL')
+      .andWhere('p.assistencias IS NOT NULL')
+      .orderBy('p.gols + p.assistencias', 'DESC')
+      .take(limit)
+      .getMany();
+  }
+
+  async maisCartoes(limit = 10) {
+    return this.playerRepository
+      .createQueryBuilder('p')
+      .where('p.cartoesAmarelos IS NOT NULL')
+      .orderBy('p.cartoesAmarelos', 'DESC')
+      .take(limit)
+      .getMany();
+  }
+
+  async maisEficientes(limit = 10) {
+    return this.playerRepository
+      .createQueryBuilder('p')
+      .where('p.golsPorChute IS NOT NULL')
+      .andWhere('p.chutesTotais >= 20')
+      .orderBy('p.golsPorChute', 'DESC')
+      .take(limit)
+      .getMany();
   }
 }
