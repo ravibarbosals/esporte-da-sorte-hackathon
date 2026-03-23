@@ -13,28 +13,22 @@ export class PredictionsService {
   async predictMatch(homeTeam: string, awayTeam: string) {
     try {
       const response = await axios.get(
-        `${this.pythonApiUrl}/predictions/${encodeURIComponent(homeTeam)}/${encodeURIComponent(awayTeam)}`
+        `${this.pythonApiUrl}/predictions/${encodeURIComponent(homeTeam)}/${encodeURIComponent(awayTeam)}`,
       );
       return response.data;
     } catch (error) {
-      throw new HttpException(
-        'Erro ao buscar previsão',
-        HttpStatus.BAD_GATEWAY,
-      );
+      throw new HttpException('Erro ao buscar previsão', HttpStatus.BAD_GATEWAY);
     }
   }
 
   async getIndicators(homeTeam: string, awayTeam: string) {
     try {
       const response = await axios.get(
-        `${this.pythonApiUrl}/indicators/${encodeURIComponent(homeTeam)}/${encodeURIComponent(awayTeam)}`
+        `${this.pythonApiUrl}/indicators/${encodeURIComponent(homeTeam)}/${encodeURIComponent(awayTeam)}`,
       );
       return response.data;
     } catch (error) {
-      throw new HttpException(
-        'Erro ao buscar indicadores',
-        HttpStatus.BAD_GATEWAY,
-      );
+      throw new HttpException('Erro ao buscar indicadores', HttpStatus.BAD_GATEWAY);
     }
   }
 
@@ -49,5 +43,20 @@ export class PredictionsService {
       indicators,
       generated_at: new Date().toISOString(),
     };
+  }
+
+  async getUpcomingMatches() {
+    const { data } = await axios.get(`${this.pythonApiUrl}/matches/upcoming`);
+    return data;
+  }
+
+  async getLiveMatches() {
+    const { data } = await axios.get(`${this.pythonApiUrl}/matches/live`);
+    return data;
+  }
+
+  async getMatchOdds(eventId: string) {
+    const { data } = await axios.get(`${this.pythonApiUrl}/matches/${eventId}/odds`);
+    return data;
   }
 }
