@@ -1,17 +1,17 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
 });
 
 // --- INSIGHTS ---
 export const getInsights = async () => {
-  const { data } = await api.get('/insights');
+  const { data } = await api.get("/insights");
   return data;
 };
 
 export const getInsightPhrases = async () => {
-  const { data } = await api.get('/insights/frases');
+  const { data } = await api.get("/insights/frases");
   return data;
 };
 
@@ -26,14 +26,14 @@ export const getPlayerProfile = async (name: string) => {
   return data;
 };
 
-export const getSquadPlayers = async (squad: string) => {
-  const { data } = await api.get(`/players/squad/${encodeURIComponent(squad)}`);
+export const getSquadPlayers = async (time: string) => {
+  const { data } = await api.get(`/players/time/${encodeURIComponent(time)}`);
   return data;
 };
 
 // --- TEAMS ---
 export const getTeams = async () => {
-  const { data } = await api.get('/teams');
+  const { data } = await api.get("/teams");
   return data;
 };
 
@@ -47,14 +47,24 @@ export const getTeamByName = async (name: string) => {
   return data;
 };
 
+export const getMostAggressiveTeams = async (limit = 10) => {
+  const { data } = await api.get(`/teams/most-aggressive?limit=${limit}`);
+  return data;
+};
+
+export const getTopScoringTeams = async (limit = 10) => {
+  const { data } = await api.get(`/teams/top-scoring?limit=${limit}`);
+  return data;
+};
+
 // --- MATCHES ---
 export const getUpcomingMatches = async () => {
-  const { data } = await api.get('/matches/upcoming');
+  const { data } = await api.get("/matches/upcoming");
   return data;
 };
 
 export const getLiveMatches = async () => {
-  const { data } = await api.get('/matches/live');
+  const { data } = await api.get("/matches/live");
   return data;
 };
 
@@ -66,21 +76,21 @@ export const getMatchesByTeam = async (team: string) => {
 // --- PREDICTIONS ---
 export const getMatchPrediction = async (home: string, away: string) => {
   const { data } = await api.get(
-    `/predictions/${encodeURIComponent(home)}/${encodeURIComponent(away)}`
+    `/predictions/${encodeURIComponent(home)}/${encodeURIComponent(away)}`,
   );
   return data;
 };
 
 export const getMatchIndicators = async (home: string, away: string) => {
   const { data } = await api.get(
-    `/predictions/${encodeURIComponent(home)}/${encodeURIComponent(away)}/indicators`
+    `/predictions/${encodeURIComponent(home)}/${encodeURIComponent(away)}/indicators`,
   );
   return data;
 };
 
 export const getFullAnalysis = async (home: string, away: string) => {
   const { data } = await api.get(
-    `/predictions/${encodeURIComponent(home)}/${encodeURIComponent(away)}/full`
+    `/predictions/${encodeURIComponent(home)}/${encodeURIComponent(away)}/full`,
   );
   return data;
 };

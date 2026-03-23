@@ -1,6 +1,6 @@
 export interface Player {
   player: string;
-  squad: string;
+  time: string;
   comp: string;
   pos: string;
   age: number;
