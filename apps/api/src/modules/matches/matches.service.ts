@@ -57,15 +57,6 @@ export class MatchesService {
   }
 
   async bulkUpsert(data: Partial<Match>[]) {
-    for (const match of data) {
-      const existing = await this.matchRepository.findOne({
-        where: { external_id: match.external_id },
-      });
-      if (existing) {
-        await this.matchRepository.update(existing.id, match);
-      } else {
-        await this.matchRepository.save(this.matchRepository.create(match));
-      }
-    }
+    return this.matchRepository.save(data, { chunk: 50 });
   }
 }

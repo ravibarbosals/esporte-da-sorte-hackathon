@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { MatchesScheduler } from './modules/matches/matches.scheduler';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -21,5 +22,9 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   await app.listen(process.env.PORT ?? 3001);
+
+  const scheduler = app.get(MatchesScheduler);
+  await scheduler.syncMatches();
+  setInterval(() => scheduler.syncOdds(), 60000);
 }
 bootstrap();

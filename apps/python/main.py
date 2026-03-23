@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from services.players import get_team_risk
 from services.statsbomb import get_team_form
-from services.betsapi import get_upcoming_matches, get_match_odds
+from services.betsapi import get_upcoming_matches, get_match_odds, get_inplay_matches
 from services.predictions import predict_match
 from services.indicators import get_all_indicators
 import json
@@ -65,6 +65,10 @@ def team_form(team_name: str, competition_id: int = 11, season_id: int = 90):
 @app.get("/matches/upcoming")
 def upcoming_matches():
     return get_upcoming_matches()
+
+@app.get("/matches/live")
+def live_matches():
+    return get_inplay_matches()
 
 @app.get("/matches/{event_id}/odds")
 def match_odds(event_id: str):
