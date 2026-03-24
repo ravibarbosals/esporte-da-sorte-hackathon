@@ -1,58 +1,97 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
+  Bot,
+  BrainCircuit,
+  Flame,
+  ListVideo,
+  Search,
   Swords,
-  Users,
-  Shield,
-  TrendingUp,
-} from 'lucide-react';
+} from "lucide-react";
 
 const links = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/matches', label: 'Partidas', icon: Swords },
-  { href: '/players', label: 'Jogadores', icon: Users },
-  { href: '/teams', label: 'Times', icon: Shield },
-  { href: '/predictions', label: 'Previsões', icon: TrendingUp },
+  { href: "/assistant", label: "Assistente", icon: Bot },
+  { href: "/live", label: "Ao vivo", icon: Flame },
+  { href: "/pre-jogo", label: "Pre-jogo", icon: Search },
+  { href: "/jogadores-chave", label: "Jogadores-chave", icon: ListVideo },
+  { href: "/modelo", label: "Modelo", icon: BrainCircuit },
+  { href: "/matches", label: "Partidas", icon: Swords },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
-      <div className="p-6 border-b border-gray-800">
-        <h1 className="text-xl font-bold text-green-400">Esporte da Sorte</h1>
-        <p className="text-xs text-gray-400 mt-1">Análise Esportiva</p>
-      </div>
+    <>
+      <aside className="hidden w-72 border-r border-slate-800 bg-slate-950 md:flex md:flex-col">
+        <div className="border-b border-slate-800 p-6">
+          <h1 className="text-xl font-bold text-emerald-400">
+            Esporte da Sorte
+          </h1>
+          <p className="mt-1 text-xs text-slate-400">
+            Copiloto de leitura esportiva
+          </p>
+        </div>
 
-      <nav className="flex-1 p-4 space-y-1">
-        {links.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                active
-                  ? 'bg-green-500/10 text-green-400'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`}
-            >
-              <Icon size={18} />
-              <span className="text-sm font-medium">{label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+        <nav className="flex-1 space-y-1 p-4">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
+                  active
+                    ? "bg-emerald-500/12 text-emerald-300"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <Icon size={18} />
+                <span className="text-sm font-medium">{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-      <div className="p-4 border-t border-gray-800">
-        <p className="text-xs text-gray-500 text-center">
-          Powered by BetsAPI + StatsBomb
-        </p>
+        <div className="border-t border-slate-800 p-4">
+          <p className="text-xs text-slate-500">
+            Dados: BetsAPI + camada analitica
+          </p>
+        </div>
+      </aside>
+
+      <div className="border-b border-slate-800 bg-slate-950 p-3 md:hidden">
+        <div className="mb-3 flex items-center justify-between">
+          <h1 className="text-sm font-bold text-emerald-300">
+            Esporte da Sorte
+          </h1>
+          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">
+            ASSISTENTE
+          </span>
+        </div>
+
+        <nav className="flex gap-2 overflow-x-auto pb-1">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs ${
+                  active
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : "border-slate-700 text-slate-400"
+                }`}
+              >
+                <Icon size={12} />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
-    </aside>
+    </>
   );
 }

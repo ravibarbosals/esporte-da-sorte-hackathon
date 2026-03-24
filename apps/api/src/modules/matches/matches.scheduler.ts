@@ -63,7 +63,7 @@ export class MatchesScheduler {
 
       const oddsParaSalvar: Partial<Odds>[] = [];
 
-      for (const match of matchList.slice(0, 10)) {
+      for (const match of matchList.slice(0, 20)) {
         if (!match.bet365_id) continue;
 
         try {
@@ -72,10 +72,17 @@ export class MatchesScheduler {
             .toPromise();
 
           const oddsData = oddsResponse?.data?.results?.[0];
+
+          this.logger.log(`Odds para ${match.bet365_id}: ${JSON.stringify(oddsData?.schedule?.sp?.main)}`);
+
           if (!oddsData) continue;
 
           const main = oddsData?.schedule?.sp?.main || [];
+          const oddsCasa = parseFloat(main[0]?.odds);
+          const oddsEmpate = parseFloat(main[1]?.odds);
+          const oddsVisitante = parseFloat(main[2]?.odds);
 
+          // salva na tabela odds
           oddsParaSalvar.push({
             fi: match.bet365_id,
             eventId: match.id,
@@ -84,10 +91,17 @@ export class MatchesScheduler {
             liga: match.league?.name,
             horario: match.time,
             status: match.time_status,
-            oddCasa: parseFloat(main[0]?.odds) || undefined,
-            oddEmpate: parseFloat(main[1]?.odds) || undefined,
-            oddVisitante: parseFloat(main[2]?.odds) || undefined,
+            oddsCasa,
+            oddsEmpate,
+            oddsVisitante,
             oddsRaw: oddsData,
+          });
+
+          // atualiza as odds na tabela matches
+          await this.matchesService.updateOdds(match.id, {
+            home_odds: oddsCasa,
+            draw_odds: oddsEmpate,
+            away_odds: oddsVisitante,
           });
         } catch {
           continue;

@@ -84,4 +84,9 @@ export class PredictionsService {
     );
     return data;
   }
+
+  async getModelExplanation() {
+    const { data } = await axios.get(`${this.pythonApiUrl}/model/explanation`);
+    return data;
+  }
 }

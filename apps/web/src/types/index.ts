@@ -1,106 +1,149 @@
-export interface Player {
-  player: string;
-  time: string;
-  comp: string;
-  pos: string;
-  age: number;
-  gols: number;
-  assists: number;
-  cartoes_amarelos: number;
-  cartoes_vermelhos: number;
-  minutos: number;
-  chutes: number;
-  chutes_no_alvo: number;
-  gols_por_90: number;
-}
+export type ConfidenceLevel = "baixa" | "media" | "alta";
+
+export type TrendDirection = "subindo" | "estavel" | "caindo";
+
+export type MatchStatus = "live" | "upcoming" | "finished";
 
 export interface Team {
-  id: number;
+  id: string;
   name: string;
-  comp: string;
-  total_yellow_cards: number;
-  total_red_cards: number;
-  avg_yellow_cards: number;
-  avg_goals: number;
-  avg_assists: number;
+  shortName?: string;
+  logoUrl?: string;
+  rank?: number;
+  recentForm?: Array<"V" | "E" | "D">;
 }
 
 export interface Match {
-  id: number;
-  external_id: string;
-  bet365_id: string;
-  home_team: string;
-  away_team: string;
-  league_name: string;
-  league_country: string;
-  match_time: string;
-  time_status: string;
-  score: string;
-  home_odds: number;
-  draw_odds: number;
-  away_odds: number;
-  extra: {
-    round?: number;
-    stadium_data?: {
-      name: string;
-      city: string;
-      country: string;
-    };
-    home_pos?: string;
-    away_pos?: string;
+  id: string;
+  leagueName: string;
+  leagueCountry?: string;
+  minute?: number;
+  status: MatchStatus;
+  isLive: boolean;
+  kickoffLabel: string;
+  score: {
+    home: number;
+    away: number;
   };
+  homeTeam: Team;
+  awayTeam: Team;
+  miniInsight: string;
 }
 
 export interface Prediction {
-  home_team: string;
-  away_team: string;
-  home_win: number;
-  draw: number;
-  away_win: number;
-  xg_home: number;
-  xg_away: number;
+  id: string;
+  name: string;
+  probability: number;
+  confidence: ConfidenceLevel;
+  trend: TrendDirection;
+  summary: string;
+  why: string;
 }
 
-export interface Indicators {
-  home: {
-    team: string;
-    inconsistency: number;
-    fatigue: number;
-    reaction_index: number;
-    offensive_efficiency: number;
-    defensive_efficiency: number;
-    avg_goals_for: number;
-    avg_goals_against: number;
-  };
-  away: {
-    team: string;
-    inconsistency: number;
-    fatigue: number;
-    reaction_index: number;
-    offensive_efficiency: number;
-    defensive_efficiency: number;
-    avg_goals_for: number;
-    avg_goals_against: number;
-  };
-  h2h: {
-    team_a_win_rate: number;
-    team_b_win_rate: number;
-    avg_total_goals: number;
-    total_encounters: number;
-  };
-}
-
-export interface FullAnalysis {
-  prediction: Prediction;
-  indicators: Indicators;
-  generated_at: string;
+export interface Scenario {
+  id: string;
+  title: string;
+  probability: number;
+  explanation: string;
+  whatCanChange: string;
 }
 
 export interface Insight {
-  id: number;
-  type: string;
+  id: string;
+  title: string;
+  text: string;
+  tone: "positivo" | "alerta" | "neutro";
+}
+
+export interface TimelineEvent {
+  id: string;
+  minute: number;
+  type:
+    | "substituicao"
+    | "finalizacao"
+    | "cartao"
+    | "pressao"
+    | "variacao"
+    | "gol"
+    | "outro";
   title: string;
   description: string;
-  data: object;
-  created_at: string;
+  impactLabel: string;
+}
+
+export interface ModelFactor {
+  id: string;
+  label: string;
+  value: number;
+  direction: "positivo" | "negativo" | "neutro";
+  description: string;
+}
+
+export interface KeyPlayer {
+  id: string;
+  name: string;
+  team: string;
+  role:
+    | "participacao_em_gol"
+    | "risco_disciplinar"
+    | "impacto_ofensivo"
+    | "impacto_defensivo";
+  probability: number;
+  summary: string;
+}
+
+export interface LiveMomentumSnapshot {
+  minute: number;
+  home: number;
+  away: number;
+  trend: TrendDirection;
+  summary: string;
+}
+
+export interface PreMatchAnalysis {
+  matchId: string;
+  homeForm: string;
+  awayForm: string;
+  h2hSummary: string;
+  offensiveTrend: string;
+  defensiveTrend: string;
+  keyPlayers: string[];
+  initialProbabilities: Array<{
+    label: string;
+    probability: number;
+  }>;
+  interpretation: string;
+}
+
+export interface TeamComparison {
+  title: string;
+  homeValue: number;
+  awayValue: number;
+  unit?: string;
+}
+
+export interface ModelExplanationSection {
+  id: string;
+  title: string;
+  content: string;
+  bullets: string[];
+}
+
+export interface MatchAnalysisBundle {
+  match: Match;
+  headlineInsight: Insight;
+  recentContext: string;
+  winnerProbabilities: {
+    home: number;
+    draw: number;
+    away: number;
+  };
+  momentum: LiveMomentumSnapshot;
+  predictions: Prediction[];
+  factors: ModelFactor[];
+  timeline: TimelineEvent[];
+  scenarios: Scenario[];
+  keyPlayers: KeyPlayer[];
+  teamComparisons: TeamComparison[];
+  textualInsights: Insight[];
 }

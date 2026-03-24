@@ -30,15 +30,15 @@ export class Odds {
 
   @Column({ type: 'float', nullable: true, comment: 'Odd de vitória do time da casa.' })
   @ApiProperty({ description: 'Odd casa.', example: 2.600 })
-  oddCasa: number;
+  oddsCasa: number;
 
-  @Column({ type: 'float', nullable: true, comment: 'Odd de empate.' })
-  @ApiProperty({ description: 'Odd empate.', example: 5.250 })
-  oddEmpate: number;
+  @Column({ type: 'float', nullable: true, comment: 'Odds de empate.' })
+  @ApiProperty({ description: 'Odds empate.', example: 5.250 })
+  oddsEmpate: number;
 
-  @Column({ type: 'float', nullable: true, comment: 'Odd de vitória do time visitante.' })
-  @ApiProperty({ description: 'Odd visitante.', example: 1.850 })
-  oddVisitante: number;
+  @Column({ type: 'float', nullable: true, comment: 'Odds de vitória do time visitante.' })
+  @ApiProperty({ description: 'Odds visitante.', example: 1.850 })
+  oddsVisitante: number;
 
   @Column({ type: 'varchar', nullable: true, comment: 'Status da partida (0=próxima, 1=ao vivo, 2=encerrada).' })
   @ApiProperty({ description: 'Status.', example: '0' })
@@ -48,11 +48,11 @@ export class Odds {
   @ApiProperty({ description: 'Horário.', example: '1774280700' })
   horario: string;
 
-  @Column({ type: 'jsonb', nullable: true, comment: 'Dados brutos das odds retornados pela API.' })
-  @ApiProperty({ description: 'Odds brutas.' })
+  @Column({ type: 'jsonb', nullable: true, comment: 'Dados brutos das oddss retornados pela API.' })
+  @ApiProperty({ description: 'Oddss brutas.' })
   oddsRaw: object;
 
-  @CreateDateColumn({ comment: 'Data de registro da odd.' })
+  @CreateDateColumn({ comment: 'Data de registro da odds.' })
   @ApiProperty({ description: 'Data de registro.' })
   registradoEm: Date;
 }

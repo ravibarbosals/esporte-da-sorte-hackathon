@@ -65,11 +65,11 @@ export class OddsService {
     const primeira = odds[0];
     const ultima = odds[odds.length - 1];
 
-    const variacaoCasa = (((ultima.oddCasa - primeira.oddCasa) / primeira.oddCasa) * 100).toFixed(
+    const variacaoCasa = (((ultima.oddsCasa - primeira.oddsCasa) / primeira.oddsCasa) * 100).toFixed(
       1,
     );
     const variacaoVisitante = (
-      ((ultima.oddVisitante - primeira.oddVisitante) / primeira.oddVisitante) *
+      ((ultima.oddsVisitante - primeira.oddsVisitante) / primeira.oddsVisitante) *
       100
     ).toFixed(1);
 
@@ -78,10 +78,10 @@ export class OddsService {
       timeVisitante: ultima.timeVisitante,
       variacaoCasa: `${variacaoCasa}%`,
       variacaoVisitante: `${variacaoVisitante}%`,
-      oddCasaInicial: primeira.oddCasa,
-      oddCasaAtual: ultima.oddCasa,
-      oddVisitanteInicial: primeira.oddVisitante,
-      oddVisitanteAtual: ultima.oddVisitante,
+      oddsCasaInicial: primeira.oddsCasa,
+      oddsCasaAtual: ultima.oddsCasa,
+      oddsVisitanteInicial: primeira.oddsVisitante,
+      oddsVisitanteAtual: ultima.oddsVisitante,
       historico: odds,
     };
   }
@@ -96,9 +96,9 @@ export class OddsService {
       liga: matchData?.league?.name,
       horario: matchData?.time,
       status: matchData?.time_status,
-      oddCasa: parseFloat(main[0]?.odds) || null,
-      oddEmpate: parseFloat(main[1]?.odds) || null,
-      oddVisitante: parseFloat(main[2]?.odds) || null,
+      oddsCasa: parseFloat(main[0]?.odds) || null,
+      oddsEmpate: parseFloat(main[1]?.odds) || null,
+      oddsVisitante: parseFloat(main[2]?.odds) || null,
       oddsRaw: rawData,
     };
   }
