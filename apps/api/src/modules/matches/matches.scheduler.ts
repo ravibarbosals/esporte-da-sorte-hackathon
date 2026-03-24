@@ -61,11 +61,15 @@ export class MatchesScheduler {
 
       if (!matchList || matchList.length === 0) return;
 
+      const eligibleMatches = matchList
+        .filter((m: any) => !m.league?.name?.toLowerCase().includes('esoccer'))
+        .filter((m: any) => !m.league?.name?.toLowerCase().includes('esports'))
+        .filter((m: any) => Boolean(m.bet365_id))
+        .slice(0, 20);
+
       const oddsParaSalvar: Partial<Odds>[] = [];
 
-      for (const match of matchList.slice(0, 20)) {
-        if (!match.bet365_id) continue;
-
+      for (const match of eligibleMatches) {
         try {
           const oddsResponse = await this.http
             .get(`${this.PYTHON_API}/matches/${match.bet365_id}/odds`)
@@ -73,7 +77,9 @@ export class MatchesScheduler {
 
           const oddsData = oddsResponse?.data?.results?.[0];
 
-          this.logger.log(`Odds para ${match.bet365_id}: ${JSON.stringify(oddsData?.schedule?.sp?.main)}`);
+          this.logger.log(
+            `Odds para ${match.bet365_id}: ${JSON.stringify(oddsData?.schedule?.sp?.main)}`,
+          );
 
           if (!oddsData) continue;
 
