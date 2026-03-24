@@ -59,4 +59,29 @@ export class PredictionsService {
     const { data } = await axios.get(`${this.pythonApiUrl}/matches/${eventId}/odds`);
     return data;
   }
+  async getMatchXg(matchId: string) {
+    const { data } = await axios.get(`${this.pythonApiUrl}/match/${matchId}/xg`);
+    return data;
+  }
+
+  async getTeamXgHistory(competitionId: string, teamName: string, limit = 10) {
+    const { data } = await axios.get(
+      `${this.pythonApiUrl}/team/${competitionId}/${encodeURIComponent(teamName)}/xg-history?limit=${limit}`,
+    );
+    return data;
+  }
+
+  async getH2hXg(competitionId: string, teamA: string, teamB: string) {
+    const { data } = await axios.get(
+      `${this.pythonApiUrl}/h2h/${competitionId}/${encodeURIComponent(teamA)}/${encodeURIComponent(teamB)}`,
+    );
+    return data;
+  }
+
+  async getTeamShotProfile(competitionId: string, teamName: string) {
+    const { data } = await axios.get(
+      `${this.pythonApiUrl}/team/${competitionId}/${encodeURIComponent(teamName)}/shot-profile`,
+    );
+    return data;
+  }
 }

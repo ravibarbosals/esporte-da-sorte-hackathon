@@ -57,6 +57,9 @@ export class MatchesService {
   }
 
   async bulkUpsert(data: Partial<Match>[]) {
-    return this.matchRepository.save(data, { chunk: 50 });
-  }
+  return this.matchRepository.upsert(data, {
+    conflictPaths: ['external_id'],
+    skipUpdateIfNoValuesChanged: true,
+  });
+}
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { PredictionsService } from './predictions.service';
 
 @Controller('predictions')
@@ -34,5 +34,36 @@ export class PredictionsController {
   @Get(':homeTeam/:awayTeam')
   predict(@Param('homeTeam') homeTeam: string, @Param('awayTeam') awayTeam: string) {
     return this.predictionsService.predictMatch(homeTeam, awayTeam);
+  }
+
+  @Get('match/:matchId/xg')
+  getMatchXg(@Param('matchId') matchId: string) {
+    return this.predictionsService.getMatchXg(matchId);
+  }
+
+  @Get('team/:competitionId/:teamName/xg-history')
+  getTeamXgHistory(
+    @Param('competitionId') competitionId: string,
+    @Param('teamName') teamName: string,
+    @Query('limit') limit = 10,
+  ) {
+    return this.predictionsService.getTeamXgHistory(competitionId, teamName, Number(limit));
+  }
+
+  @Get('h2h/:competitionId/:teamA/:teamB')
+  getH2hXg(
+    @Param('competitionId') competitionId: string,
+    @Param('teamA') teamA: string,
+    @Param('teamB') teamB: string,
+  ) {
+    return this.predictionsService.getH2hXg(competitionId, teamA, teamB);
+  }
+
+  @Get('team/:competitionId/:teamName/shot-profile')
+  getTeamShotProfile(
+    @Param('competitionId') competitionId: string,
+    @Param('teamName') teamName: string,
+  ) {
+    return this.predictionsService.getTeamShotProfile(competitionId, teamName);
   }
 }

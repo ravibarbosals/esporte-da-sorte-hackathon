@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
+@Unique(['fi', 'horario', 'status'])
 @Entity('odds')
 export class Odds {
   @PrimaryGeneratedColumn('increment', { type: 'int', comment: 'ID interno.' })

@@ -59,17 +59,37 @@ export const getTopScoringTeams = async (limit = 10) => {
 
 // --- MATCHES ---
 export const getUpcomingMatches = async () => {
-  const { data } = await api.get("/matches/upcoming");
+  const { data } = await api.get('/matches/upcoming');
   return data;
 };
 
 export const getLiveMatches = async () => {
-  const { data } = await api.get("/matches/live");
+  const { data } = await api.get('/matches/live');
   return data;
 };
 
-export const getMatchesByTeam = async (team: string) => {
-  const { data } = await api.get(`/matches/team/${encodeURIComponent(team)}`);
+export const getMatchesByLeague = async (league: string) => {
+  const { data } = await api.get(`/matches/league/${encodeURIComponent(league)}`);
+  return data;
+};
+
+// --- XG E ANÁLISE ---
+export const getMatchXg = async (matchId: string) => {
+  const { data } = await api.get(`/predictions/match/${matchId}/xg`);
+  return data;
+};
+
+export const getH2hXg = async (competitionId: string, teamA: string, teamB: string) => {
+  const { data } = await api.get(
+    `/predictions/h2h/${competitionId}/${encodeURIComponent(teamA)}/${encodeURIComponent(teamB)}`
+  );
+  return data;
+};
+
+export const getTeamXgHistory = async (competitionId: string, teamName: string, limit = 5) => {
+  const { data } = await api.get(
+    `/predictions/team/${competitionId}/${encodeURIComponent(teamName)}/xg-history?limit=${limit}`
+  );
   return data;
 };
 

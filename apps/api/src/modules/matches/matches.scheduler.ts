@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MatchesService } from './matches.service';
 import { OddsService } from '../odds/odds.service';
+import { Odds } from '../odds/odds.entity';
 
 @Injectable()
 export class MatchesScheduler {
@@ -18,23 +19,35 @@ export class MatchesScheduler {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async syncMatches() {
     try {
-      const response = await this.http.get(`${this.PYTHON_API}/insights`).toPromise();
-      const data = response?.data;
+      const response = await this.http.get(`${this.PYTHON_API}/matches/upcoming`).toPromise();
+      const data = response?.data?.results;
 
       if (!data || data.length === 0) {
         this.logger.warn('Nenhuma partida recebida');
         return;
       }
 
-      // Mapeia conforme sua estrutura
-      const mapped = data.map((m) => ({
-        external_id: m.id,
-        home_team: m.home?.name,
-        away_team: m.away?.name,
-      }));
+      const mapped = data
+        .filter((m: any) => !m.league?.name?.toLowerCase().includes('esoccer'))
+        .filter((m: any) => !m.league?.name?.toLowerCase().includes('esports'))
+        .map((m: any) => ({
+          external_id: m.id,
+          bet365_id: m.bet365_id,
+          home_team: m.home?.name,
+          home_team_external_id: m.home?.id,
+          away_team: m.away?.name,
+          away_team_external_id: m.away?.id,
+          league_id: m.league?.id,
+          league_name: m.league?.name,
+          league_country: m.league?.cc,
+          match_time: m.time,
+          time_status: m.time_status,
+          score: m.ss,
+          extra: m.extra,
+        }));
 
       await this.matchesService.bulkUpsert(mapped);
-      this.logger.debug(`✅ ${mapped.length} partidas sincronizadas`);
+      this.logger.log(`✅ ${mapped.length} partidas sincronizadas`);
     } catch (error) {
       this.logger.error('❌ Erro ao sincronizar partidas:', error.message);
     }
@@ -43,16 +56,48 @@ export class MatchesScheduler {
   @Cron(CronExpression.EVERY_MINUTE)
   async syncOdds() {
     try {
-      const response = await this.http.get(`${this.PYTHON_API}/odds`).toPromise();
-      const data = response?.data;
+      const response = await this.http.get(`${this.PYTHON_API}/matches/upcoming`).toPromise();
+      const matchList = response?.data?.results;
 
-      if (!data || data.length === 0) {
-        this.logger.warn('Nenhuma odd recebida');
-        return;
+      if (!matchList || matchList.length === 0) return;
+
+      const oddsParaSalvar: Partial<Odds>[] = [];
+
+      for (const match of matchList.slice(0, 10)) {
+        if (!match.bet365_id) continue;
+
+        try {
+          const oddsResponse = await this.http
+            .get(`${this.PYTHON_API}/matches/${match.bet365_id}/odds`)
+            .toPromise();
+
+          const oddsData = oddsResponse?.data?.results?.[0];
+          if (!oddsData) continue;
+
+          const main = oddsData?.schedule?.sp?.main || [];
+
+          oddsParaSalvar.push({
+            fi: match.bet365_id,
+            eventId: match.id,
+            timeCasa: match.home?.name,
+            timeVisitante: match.away?.name,
+            liga: match.league?.name,
+            horario: match.time,
+            status: match.time_status,
+            oddCasa: parseFloat(main[0]?.odds) || undefined,
+            oddEmpate: parseFloat(main[1]?.odds) || undefined,
+            oddVisitante: parseFloat(main[2]?.odds) || undefined,
+            oddsRaw: oddsData,
+          });
+        } catch {
+          continue;
+        }
       }
 
-      await this.oddsService.bulkUpsert(data);
-      this.logger.debug(`✅ ${data.length} odds sincronizadas`);
+      if (oddsParaSalvar.length > 0) {
+        await this.oddsService.bulkUpsert(oddsParaSalvar);
+        this.logger.log(`✅ ${oddsParaSalvar.length} odds sincronizadas`);
+      }
     } catch (error) {
       this.logger.error('❌ Erro ao sincronizar odds:', error.message);
     }

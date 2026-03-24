@@ -104,6 +104,9 @@ export class OddsService {
   }
 
   async bulkUpsert(data: Partial<Odds>[]) {
-    return this.oddRepository.save(data, { chunk: 50 });
+    return this.oddRepository.upsert(data, {
+      conflictPaths: ['fi', 'horario', 'status'],
+      skipUpdateIfNoValuesChanged: true,
+    });
   }
 }
