@@ -7,38 +7,42 @@ import LoadingState from "@/components/assistant/LoadingState";
 import EmptyState from "@/components/assistant/EmptyState";
 import { useLiveAndUpcoming } from "@/lib/hooks/use-live-and-upcoming";
 
-type MatchTab = "live" | "upcoming";
+type MatchTab = "live" | "upcoming" | "replay";
 
 export default function MatchesPage() {
-  const { liveMatches, upcomingMatches, loading } = useLiveAndUpcoming();
+  const { liveMatches, replayMatches, upcomingMatches, loading } =
+    useLiveAndUpcoming();
   const [activeTab, setActiveTab] = useState<MatchTab>("live");
 
-  const currentList = useMemo(
-    () => (activeTab === "live" ? liveMatches : upcomingMatches),
-    [activeTab, liveMatches, upcomingMatches],
-  );
+  const currentList = useMemo(() => {
+    if (activeTab === "live") {
+      return liveMatches;
+    }
+    if (activeTab === "upcoming") {
+      return upcomingMatches;
+    }
+    return replayMatches;
+  }, [activeTab, liveMatches, upcomingMatches, replayMatches]);
 
   if (loading) {
-    return (
-      <LoadingState label="Atualizando partidas e sinais contextuais..." />
-    );
+    return <LoadingState label="Atualizando grade de partidas..." />;
   }
 
   return (
-    <div className="space-y-6">
-      <header>
+    <div className="space-y-5">
+      <header className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
         <p className="text-xs uppercase tracking-[0.2em] text-emerald-300">
           Partidas
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">
-          Radar de confrontos
+        <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+          Escolha o jogo para analisar
         </h1>
-        <p className="mt-2 text-sm text-slate-300 sm:text-base">
-          Lista de partidas com leitura interpretativa para acelerar decisao.
-        </p>
+        <div className="mt-3 inline-flex items-center rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-200">
+          {liveMatches.length} jogo(s) ao vivo agora
+        </div>
       </header>
 
-      <div className="grid w-full grid-cols-2 rounded-xl border border-slate-800 bg-slate-900 p-1">
+      <div className="grid w-full grid-cols-3 rounded-xl border border-slate-800 bg-slate-900 p-1">
         <button
           onClick={() => setActiveTab("live")}
           className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
@@ -57,35 +61,57 @@ export default function MatchesPage() {
               : "text-slate-300 hover:bg-slate-800"
           }`}
         >
-          Agenda ({upcomingMatches.length})
+          Proximas ({upcomingMatches.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("replay")}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${
+            activeTab === "replay"
+              ? "bg-sky-500 text-white shadow-sm shadow-sky-500/30"
+              : "text-slate-300 hover:bg-slate-800"
+          }`}
+        >
+          Finalizados/Replay ({replayMatches.length})
         </button>
       </div>
 
       <section>
         <SectionHeader
-          title={activeTab === "live" ? "Jogos ao vivo" : "Proximos jogos"}
-          subtitle={
+          title={
             activeTab === "live"
-              ? "Com mini insights de contexto e ritmo da partida"
-              : "Com leitura pre-jogo para antecipar cenarios"
+              ? "Jogos ao vivo"
+              : activeTab === "upcoming"
+                ? "Proximos jogos"
+                : "Jogos finalizados em replay"
           }
+          subtitle={undefined}
         />
 
         {currentList.length === 0 ? (
           <EmptyState
             title={
-              activeTab === "live" ? "Sem jogos ao vivo" : "Sem jogos agendados"
+              activeTab === "live"
+                ? "Sem jogos ao vivo"
+                : activeTab === "upcoming"
+                  ? "Sem jogos futuros"
+                  : "Sem jogos finalizados em replay"
             }
             description={
               activeTab === "live"
-                ? "Assim que partidas entrarem em andamento, os insights aparecem aqui."
-                : "A agenda sera preenchida quando novos confrontos forem disponibilizados."
+                ? "Nenhum jogo ao vivo neste momento."
+                : activeTab === "upcoming"
+                  ? "Nenhuma partida futura disponivel agora."
+                  : "Nenhum replay disponivel no momento."
             }
           />
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {currentList.map((match) => (
-              <MatchCard key={match.id} match={match} />
+              <MatchCard
+                key={match.id}
+                match={match}
+                highlightLive={activeTab === "live"}
+              />
             ))}
           </div>
         )}

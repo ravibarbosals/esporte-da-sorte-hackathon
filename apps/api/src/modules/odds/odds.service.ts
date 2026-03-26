@@ -65,9 +65,10 @@ export class OddsService {
     const primeira = odds[0];
     const ultima = odds[odds.length - 1];
 
-    const variacaoCasa = (((ultima.oddsCasa - primeira.oddsCasa) / primeira.oddsCasa) * 100).toFixed(
-      1,
-    );
+    const variacaoCasa = (
+      ((ultima.oddsCasa - primeira.oddsCasa) / primeira.oddsCasa) *
+      100
+    ).toFixed(1);
     const variacaoVisitante = (
       ((ultima.oddsVisitante - primeira.oddsVisitante) / primeira.oddsVisitante) *
       100
@@ -104,7 +105,48 @@ export class OddsService {
   }
 
   async bulkUpsert(data: Partial<Odds>[]) {
-    return this.oddRepository.upsert(data, {
+    const mergedByEvent = new Map<string, Partial<Odds>>();
+
+    const asCleanId = (value: unknown): string => String(value ?? '').trim();
+    const asValidOdd = (value: unknown): number | null => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed <= 1 || parsed > 1000) {
+        return null;
+      }
+      return parsed;
+    };
+
+    for (const row of data) {
+      const fi = asCleanId(row.fi);
+      const eventId = asCleanId(row.eventId);
+
+      if (!fi && !eventId) {
+        continue;
+      }
+
+      const normalizedRow: Partial<Odds> = {
+        ...row,
+        fi: fi || undefined,
+        eventId: eventId || undefined,
+        oddsCasa: asValidOdd(row.oddsCasa) ?? undefined,
+        oddsEmpate: asValidOdd(row.oddsEmpate) ?? undefined,
+        oddsVisitante: asValidOdd(row.oddsVisitante) ?? undefined,
+      };
+
+      // Precedencia: fi (bet365_id) > eventId (external_id).
+      const fallbackKey = `${fi}:${eventId}:${asCleanId(row.horario)}:${asCleanId(row.status)}`;
+      const key =
+        fi.length > 0
+          ? `fi:${fi}`
+          : eventId.length > 0
+            ? `event:${eventId}`
+            : `fallback:${fallbackKey}`;
+      mergedByEvent.set(key, normalizedRow);
+    }
+
+    const deduped = Array.from(mergedByEvent.values());
+
+    return this.oddRepository.upsert(deduped, {
       conflictPaths: ['fi', 'horario', 'status'],
       skipUpdateIfNoValuesChanged: true,
     });

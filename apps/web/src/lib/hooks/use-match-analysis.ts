@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MatchAnalysisBundle } from "@/types";
 import {
+  MatchDetailAvailability,
   ExperienceMeta,
   getMatchAnalysisResolved,
   MatchAnalysisSectionStatus,
@@ -17,6 +18,8 @@ export function useMatchAnalysis(matchId: string) {
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [sectionStatus, setSectionStatus] =
     useState<MatchAnalysisSectionStatus | null>(null);
+  const [availability, setAvailability] =
+    useState<MatchDetailAvailability | null>(null);
   const [hasPartialFallback, setHasPartialFallback] = useState(false);
   const [experience, setExperience] = useState<ExperienceMeta>({
     mode: "resiliente",
@@ -48,20 +51,35 @@ export function useMatchAnalysis(matchId: string) {
 
         setAnalysis(result.bundle);
         setSectionStatus(result.sectionStatus);
+        setAvailability(result.availability);
         setHasPartialFallback(result.hasPartialFallback);
         setExperience(result.experience);
         setLastUpdated(Date.now());
-      } catch {
+      } catch (error) {
         if (!mounted) {
           return;
         }
-        setAnalysis(null);
-        setSectionStatus(null);
+
+        // Em falha de refresh, preserva ultimo snapshot valido para evitar flicker.
+        if (isInitialLoad) {
+          setAnalysis(null);
+          setSectionStatus(null);
+          setAvailability(null);
+        }
+
         setHasPartialFallback(true);
         setExperience({
           mode: "resiliente",
           label: "Cobertura resiliente",
-          hint: "Nao foi possivel montar a leitura completa neste instante.",
+          hint: isInitialLoad
+            ? "Nao foi possivel montar a leitura completa neste instante."
+            : "Instabilidade momentanea detectada. Mantendo a ultima leitura valida.",
+        });
+
+        console.error("Falha ao atualizar analise da partida", {
+          matchId,
+          isInitialLoad,
+          error,
         });
       } finally {
         if (!mounted) {
@@ -90,6 +108,7 @@ export function useMatchAnalysis(matchId: string) {
     isRefreshing,
     lastUpdated,
     sectionStatus,
+    availability,
     hasPartialFallback,
     experience,
   };

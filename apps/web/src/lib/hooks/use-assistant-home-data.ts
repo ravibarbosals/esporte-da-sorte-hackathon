@@ -12,6 +12,7 @@ import {
 type AssistantHomeState = {
   featured: MatchAnalysisBundle | null;
   liveMatches: Match[];
+  replayMatches: Match[];
   loading: boolean;
   isRefreshing: boolean;
   lastUpdated: number | null;
@@ -27,6 +28,7 @@ export function useAssistantHomeData(): AssistantHomeState {
   const [state, setState] = useState<AssistantHomeState>({
     featured: null,
     liveMatches: [],
+    replayMatches: [],
     loading: true,
     isRefreshing: false,
     lastUpdated: null,
@@ -59,7 +61,16 @@ export function useAssistantHomeData(): AssistantHomeState {
 
       try {
         const liveResult = await getLiveMatchesForAssistantResolved();
-        const featuredMatch = liveResult.matches[0];
+        const liveRealMatches = liveResult.matches.filter(
+          (match) =>
+            String(match.source ?? "").toLowerCase() === "betsapi" &&
+            match.phase === "live",
+        );
+        const replayMatches = liveResult.matches.filter(
+          (match) =>
+            String(match.source ?? "").toLowerCase() === "statsbomb-replay",
+        );
+        const featuredMatch = liveRealMatches[0] ?? replayMatches[0];
         const featuredResult = featuredMatch
           ? await getMatchAnalysisResolved(featuredMatch.id)
           : null;
@@ -68,28 +79,65 @@ export function useAssistantHomeData(): AssistantHomeState {
           return;
         }
 
-        setState({
-          featured: featuredResult?.bundle ?? null,
-          liveMatches: liveResult.matches,
-          loading: false,
-          isRefreshing: false,
-          lastUpdated: Date.now(),
-          liveSource: liveResult.source,
-          experience: liveResult.experience,
-          featuredSectionStatus: featuredResult?.sectionStatus ?? null,
-          hasPartialFallback:
-            liveResult.experience.mode === "resiliente" ||
-            Boolean(featuredResult?.hasPartialFallback),
+        const hasFreshPayload =
+          Boolean(featuredResult?.bundle) ||
+          liveRealMatches.length > 0 ||
+          replayMatches.length > 0;
+
+        setState((prev) => {
+          if (
+            !isInitialLoad &&
+            !hasFreshPayload &&
+            (Boolean(prev.featured) ||
+              prev.liveMatches.length > 0 ||
+              prev.replayMatches.length > 0)
+          ) {
+            return {
+              ...prev,
+              loading: false,
+              isRefreshing: false,
+              lastUpdated: Date.now(),
+              liveSource: liveResult.source,
+              experience: {
+                mode: "resiliente",
+                label: "Cobertura resiliente",
+                hint: "Oscilacao momentanea da fonte ao vivo. Mantendo a ultima leitura valida.",
+              },
+              hasPartialFallback: true,
+            };
+          }
+
+          return {
+            featured: featuredResult?.bundle ?? null,
+            liveMatches: liveRealMatches,
+            replayMatches,
+            loading: false,
+            isRefreshing: false,
+            lastUpdated: Date.now(),
+            liveSource: liveResult.source,
+            experience: liveResult.experience,
+            featuredSectionStatus: featuredResult?.sectionStatus ?? null,
+            hasPartialFallback:
+              liveResult.experience.mode === "resiliente" ||
+              Boolean(featuredResult?.hasPartialFallback),
+          };
         });
-      } catch {
+      } catch (error) {
         if (!mounted) {
           return;
         }
+
+        console.error("Falha ao atualizar dados da home do assistente", {
+          isInitialLoad,
+          error,
+        });
 
         setState((prev) => ({
           ...prev,
           loading: false,
           isRefreshing: false,
+          liveMatches: [],
+          replayMatches: [],
           experience: {
             mode: "resiliente",
             label: "Cobertura resiliente",

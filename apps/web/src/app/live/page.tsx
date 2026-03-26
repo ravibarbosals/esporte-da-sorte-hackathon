@@ -7,7 +7,7 @@ import EmptyState from "@/components/assistant/EmptyState";
 import { useLiveAndUpcoming } from "@/lib/hooks/use-live-and-upcoming";
 
 export default function LivePage() {
-  const { liveMatches, loading } = useLiveAndUpcoming();
+  const { liveMatches, replayMatches, loading } = useLiveAndUpcoming();
 
   if (loading) {
     return <LoadingState label="Monitorando partidas ao vivo..." />;
@@ -30,13 +30,13 @@ export default function LivePage() {
 
       <SectionHeader
         title="Partidas em andamento"
-        subtitle="Foco em interpretacao, nao em tabela estatica"
+        subtitle="Somente partidas ao vivo reais da BetsAPI"
       />
 
       {liveMatches.length === 0 ? (
         <EmptyState
-          title="Nenhuma partida ao vivo agora"
-          description="Assim que jogos iniciarem, o assistente mostrara mudancas de contexto aqui."
+          title="Nenhuma partida ao vivo no momento."
+          description="Assim que a BetsAPI identificar jogos em andamento, eles aparecerao aqui."
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -45,6 +45,20 @@ export default function LivePage() {
           ))}
         </div>
       )}
+
+      {replayMatches.length > 0 ? (
+        <section>
+          <SectionHeader
+            title="Replay analitico"
+            subtitle="Partidas de replay StatsBomb separadas do ao vivo real"
+          />
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {replayMatches.map((match) => (
+              <MatchCard key={match.id} match={match} highlightLive={false} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

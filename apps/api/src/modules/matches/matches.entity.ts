@@ -45,6 +45,15 @@ export class Match {
   time_status: string;
   // 0 = upcoming, 1 = inplay, 2 = ended, 3 = cancelled
 
+  @Column({ default: 'upcoming' })
+  phase: string;
+
+  @Column({ default: false })
+  is_live: boolean;
+
+  @Column({ nullable: true })
+  status: string;
+
   @Column({ nullable: true })
   score: string;
 
@@ -59,6 +68,9 @@ export class Match {
 
   @Column({ nullable: true, type: 'jsonb' })
   extra: object;
+
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  last_synced_at: Date;
 
   @CreateDateColumn()
   created_at: Date;

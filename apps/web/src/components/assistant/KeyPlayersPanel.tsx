@@ -1,4 +1,8 @@
 import { KeyPlayer } from "@/types";
+import {
+  formatPercent,
+  safeText,
+} from "@/components/assistant/presentation-formatters";
 
 type KeyPlayersPanelProps = {
   players: KeyPlayer[];
@@ -20,14 +24,23 @@ export default function KeyPlayersPanel({ players }: KeyPlayersPanelProps) {
           className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4"
         >
           <p className="text-xs uppercase tracking-wide text-slate-400">
-            {roleLabel[player.role]}
+            {roleLabel[player.role] ?? "Destaque monitorado"}
           </p>
-          <p className="mt-2 text-sm font-semibold text-white">{player.name}</p>
-          <p className="text-xs text-slate-400">{player.team}</p>
+          <p className="mt-2 text-sm font-semibold text-white">
+            {safeText(player.name, "Jogador indisponivel")}
+          </p>
+          <p className="text-xs text-slate-400">
+            {safeText(player.team, "Time indisponivel")}
+          </p>
           <p className="mt-3 text-2xl font-bold text-emerald-300">
-            {player.probability}%
+            {formatPercent(player.probability, "0%")}
           </p>
-          <p className="mt-2 text-xs text-slate-400">{player.summary}</p>
+          <p className="mt-2 text-xs text-slate-400">
+            {safeText(
+              player.summary,
+              "Sem contexto suficiente para detalhar este destaque.",
+            )}
+          </p>
         </article>
       ))}
     </div>

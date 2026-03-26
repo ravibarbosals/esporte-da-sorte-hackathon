@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { TimelineEvent } from "@/types";
+import {
+  formatMinuteLabel,
+  safeText,
+} from "@/components/assistant/presentation-formatters";
 
 type LiveTimelineProps = {
   events: TimelineEvent[];
@@ -45,7 +49,7 @@ export default function LiveTimeline({ events }: LiveTimelineProps) {
           >
             <div className="mt-1">
               <span className="inline-flex min-w-10 justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
-                {event.minute}'
+                {formatMinuteLabel(event.minute, "-")}
               </span>
             </div>
             <div
@@ -56,12 +60,17 @@ export default function LiveTimeline({ events }: LiveTimelineProps) {
               }`}
             >
               <p className="text-[11px] uppercase tracking-wide text-amber-300">
-                {event.impactLabel}
+                {safeText(event.impactLabel, "Impacto monitorado")}
               </p>
               <p className="mt-1 text-sm font-semibold text-white">
-                {event.title}
+                {safeText(event.title, "Evento sem titulo")}
               </p>
-              <p className="mt-1 text-sm text-slate-300">{event.description}</p>
+              <p className="mt-1 text-sm text-slate-300">
+                {safeText(
+                  event.description,
+                  "Sem descricao adicional para este momento.",
+                )}
+              </p>
             </div>
           </article>
         ))}

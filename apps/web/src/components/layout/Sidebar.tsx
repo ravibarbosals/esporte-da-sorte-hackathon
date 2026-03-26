@@ -2,22 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Bot,
-  BrainCircuit,
-  Flame,
-  ListVideo,
-  Search,
-  Swords,
-} from "lucide-react";
+import { BrainCircuit, Swords } from "lucide-react";
 
 const links = [
-  { href: "/assistant", label: "Assistente", icon: Bot },
-  { href: "/live", label: "Ao vivo", icon: Flame },
-  { href: "/pre-jogo", label: "Pre-jogo", icon: Search },
-  { href: "/jogadores-chave", label: "Jogadores-chave", icon: ListVideo },
-  { href: "/modelo", label: "Modelo", icon: BrainCircuit },
   { href: "/matches", label: "Partidas", icon: Swords },
+  { href: "/modelo", label: "Modelo", icon: BrainCircuit },
 ];
 
 export default function Sidebar() {
@@ -57,7 +46,7 @@ export default function Sidebar() {
 
         <div className="border-t border-slate-800 p-4">
           <p className="text-xs text-slate-500">
-            Dados: BetsAPI + camada analitica
+            Dados: BetsAPI live + replay StatsBomb
           </p>
         </div>
       </aside>
@@ -68,7 +57,7 @@ export default function Sidebar() {
             Esporte da Sorte
           </h1>
           <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">
-            ASSISTENTE
+            PARTIDAS
           </span>
         </div>
 

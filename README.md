@@ -7,20 +7,21 @@ Plataforma de análise esportiva que transforma dados brutos de partidas e odds 
 ## Desafio
 
 **Desafio 1 — Assistente de Análise Esportiva**
+
 > Desenvolver uma experiência digital que interprete dados brutos para gerar insights e previsões de cenários (gols, cartões, vencedores), transformando estatísticas complexas em apoio visual claro para o usuário.
 
 ---
 
 ## Stack
 
-| Camada | Tecnologia |
-|--------|-----------|
+| Camada   | Tecnologia                                 |
+| -------- | ------------------------------------------ |
 | Frontend | Next.js 14 + React + TypeScript + Tailwind |
-| Backend | NestJS + TypeScript |
-| Dados | Python + DuckDB + FastAPI |
-| Banco | PostgreSQL |
-| Infra | Docker + Docker Compose |
-| Gráficos | Recharts |
+| Backend  | NestJS + TypeScript                        |
+| Dados    | Python + DuckDB + FastAPI                  |
+| Banco    | PostgreSQL                                 |
+| Infra    | Docker + Docker Compose                    |
+| Gráficos | Recharts                                   |
 
 ---
 
@@ -67,10 +68,10 @@ cd esporte-da-sorte-hackathon
 ### 2. Configure as variáveis de ambiente
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
-Edite o `.env` com seus valores:
+Edite o `.env.local` com seus valores:
 
 ```env
 DB_USER=postgres
@@ -82,15 +83,15 @@ BETSAPI_TOKEN=seu_token_aqui
 ### 3. Suba tudo com Docker
 
 ```bash
-docker-compose up --build
+docker compose --env-file .env.local up --build
 ```
 
 ### 4. Acesse
 
-| Serviço | URL |
-|---------|-----|
-| Frontend | http://localhost:3000 |
-| API | http://localhost:3001 |
+| Serviço       | URL                   |
+| ------------- | --------------------- |
+| Frontend      | http://localhost:3000 |
+| API           | http://localhost:3001 |
 | Python worker | http://localhost:8000 |
 
 ---
@@ -98,6 +99,7 @@ docker-compose up --build
 ## Rodar sem Docker (desenvolvimento)
 
 **API (NestJS):**
+
 ```bash
 cd apps/api
 npm install
@@ -105,6 +107,7 @@ npm run start:dev
 ```
 
 **Frontend (Next.js):**
+
 ```bash
 cd apps/web
 npm install
@@ -112,6 +115,7 @@ npm run dev
 ```
 
 **Python:**
+
 ```bash
 cd apps/python
 python -m venv venv
@@ -124,13 +128,13 @@ uvicorn main:app --reload
 
 ## Endpoints principais
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/api/insights` | Insights automáticos gerados |
-| GET | `/api/odds` | Odds de partidas |
-| GET | `/api/predictions` | Previsões de resultados |
-| GET | `/api/matches` | Histórico de partidas |
-| POST | `/api/upload-csv` | Upload de dataset |
+| Método | Endpoint           | Descrição                    |
+| ------ | ------------------ | ---------------------------- |
+| GET    | `/api/insights`    | Insights automáticos gerados |
+| GET    | `/api/odds`        | Odds de partidas             |
+| GET    | `/api/predictions` | Previsões de resultados      |
+| GET    | `/api/matches`     | Histórico de partidas        |
+| POST   | `/api/upload-csv`  | Upload de dataset            |
 
 ---
 
@@ -145,10 +149,10 @@ uvicorn main:app --reload
 
 ## Time
 
-| Nome | Papel |
-|------|-------|
-| — | Backend + Frontend + Infra |
-| — | Análise de dados + Python |
+| Nome | Papel                      |
+| ---- | -------------------------- |
+| —    | Backend + Frontend + Infra |
+| —    | Análise de dados + Python  |
 
 ---
 

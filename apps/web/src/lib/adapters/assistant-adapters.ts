@@ -83,6 +83,46 @@ function toMinute(value: unknown, fallback = 0): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
+function toLiveMinute(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 180) {
+    return fallback;
+  }
+  return parsed;
+}
+
+function normalizeKickoffLabel(value: unknown, fallback: string): string {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    const date = new Date(value > 1e12 ? value : value * 1000);
+    return date.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return fallback;
+    }
+
+    if (/^\d{9,13}$/.test(trimmed)) {
+      const numeric = Number(trimmed);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        const date = new Date(numeric > 1e12 ? numeric : numeric * 1000);
+        return date.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+    }
+
+    return trimmed;
+  }
+
+  return fallback;
+}
+
 function normalizeTrend(
   value: unknown,
   fallback: TrendDirection,
@@ -93,63 +133,229 @@ function normalizeTrend(
   return fallback;
 }
 
-function normalizeMatchStatus(raw: Record<string, unknown>): Match["status"] {
-  const statusValue = String(raw.time_status ?? raw.status ?? "").toLowerCase();
+function isTruthySignal(value: unknown): boolean {
+  const signal = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return signal === "1" || signal === "true" || signal === "yes";
+}
 
+function normalizeMatchStatus(raw: Record<string, unknown>): Match["status"] {
+  const phaseValue = String(raw.phase ?? "").toLowerCase();
   if (
-    statusValue === "1" ||
-    statusValue.includes("live") ||
-    statusValue.includes("inplay") ||
-    statusValue.includes("running")
+    phaseValue === "live" ||
+    phaseValue === "upcoming" ||
+    phaseValue === "finished"
   ) {
+    return phaseValue;
+  }
+
+  const isLiveFlag =
+    raw.is_live === true || raw.is_live === 1 || raw.is_live === "1";
+  if (isLiveFlag) {
     return "live";
   }
 
+  const statusValue = String(raw.status ?? "").toLowerCase();
+  const timeStatusValue = String(raw.time_status ?? "").toLowerCase();
+  const composite = `${statusValue} ${timeStatusValue}`;
+
   if (
-    statusValue === "3" ||
-    statusValue.includes("finished") ||
-    statusValue.includes("ended")
+    timeStatusValue === "2" ||
+    timeStatusValue === "3" ||
+    composite.includes("finished") ||
+    composite.includes("ended") ||
+    composite.includes("final") ||
+    composite.includes("ft") ||
+    composite.includes("cancelled") ||
+    composite.includes("canceled") ||
+    composite.includes("abandoned")
   ) {
     return "finished";
+  }
+
+  if (
+    timeStatusValue === "1" ||
+    composite.includes("live") ||
+    composite.includes("inplay") ||
+    composite.includes("running") ||
+    isTruthySignal(raw.inplay) ||
+    isTruthySignal(raw.live)
+  ) {
+    return "live";
   }
 
   return "upcoming";
 }
 
+function toSafeNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseGoalValue(value: unknown): number {
+  if (value && typeof value === "object") {
+    const row = value as Record<string, unknown>;
+    const nested =
+      toSafeNumber(row.goals) ??
+      toSafeNumber(row.score) ??
+      toSafeNumber(row.value);
+    return nested ?? 0;
+  }
+
+  const parsed = toSafeNumber(value);
+  return parsed ?? 0;
+}
+
 function parseScore(score: unknown): { home: number; away: number } {
-  if (typeof score === "string" && score.includes("-")) {
-    const [homeRaw, awayRaw] = score.split("-").map((v) => Number(v.trim()));
-    return {
-      home: Number.isFinite(homeRaw) ? homeRaw : 0,
-      away: Number.isFinite(awayRaw) ? awayRaw : 0,
-    };
+  if (typeof score === "string") {
+    // Aceita formatos comuns de placar: "1-0", "1:0", "1 x 0".
+    const matched = score.match(/(-?\d+)\s*[-:x]\s*(-?\d+)/i);
+    if (matched) {
+      return {
+        home: parseGoalValue(matched[1]),
+        away: parseGoalValue(matched[2]),
+      };
+    }
   }
 
   if (score && typeof score === "object") {
-    const maybeScore = score as { home?: unknown; away?: unknown };
+    const maybeScore = score as Record<string, unknown>;
+    // Normaliza variações de payload sem inferir gols inexistentes.
     return {
-      home: Number(maybeScore.home) || 0,
-      away: Number(maybeScore.away) || 0,
+      home: parseGoalValue(
+        maybeScore.home ?? maybeScore.home_score ?? maybeScore[0],
+      ),
+      away: parseGoalValue(
+        maybeScore.away ?? maybeScore.away_score ?? maybeScore[1],
+      ),
     };
   }
 
   return { home: 0, away: 0 };
 }
 
+function extractTeamName(
+  value: unknown,
+  fallback: string,
+  alternatives: unknown[] = [],
+): string {
+  const fromValue =
+    typeof value === "string"
+      ? value
+      : value && typeof value === "object"
+        ? String((value as { name?: unknown }).name ?? "")
+        : "";
+
+  const candidate = normalizeText(fromValue, "").trim();
+  if (candidate) {
+    return candidate;
+  }
+
+  for (const alt of alternatives) {
+    const altName =
+      typeof alt === "string"
+        ? alt
+        : alt && typeof alt === "object"
+          ? String((alt as { name?: unknown }).name ?? "")
+          : "";
+    const parsed = normalizeText(altName, "").trim();
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function extractCompetitionName(value: unknown, fallback: string): string {
+  if (typeof value === "string") {
+    const parsed = value.trim();
+    return parsed || fallback;
+  }
+
+  if (value && typeof value === "object") {
+    const fromName = String((value as { name?: unknown }).name ?? "").trim();
+    if (fromName) {
+      return fromName;
+    }
+  }
+
+  return fallback;
+}
+
+function extractTeamId(
+  value: unknown,
+  fallback: string,
+  alternatives: unknown[] = [],
+): string {
+  if (value && typeof value === "object") {
+    const objectId = String((value as { id?: unknown }).id ?? "").trim();
+    if (objectId) {
+      return objectId;
+    }
+  }
+
+  for (const alt of alternatives) {
+    const altId =
+      typeof alt === "object" && alt !== null
+        ? String((alt as { id?: unknown }).id ?? "").trim()
+        : String(alt ?? "").trim();
+    if (altId) {
+      return altId;
+    }
+  }
+
+  return fallback;
+}
+
+function parseMatchOdds(
+  raw: Record<string, unknown>,
+): Match["odds"] | undefined {
+  const direct = (raw.odds ?? {}) as Record<string, unknown>;
+  const homeDirect = Number(direct.home ?? direct.homeOdds);
+  const drawDirect = Number(direct.draw ?? direct.drawOdds);
+  const awayDirect = Number(direct.away ?? direct.awayOdds);
+
+  const homeFallback = Number(raw.home_odds ?? raw.homeOdds);
+  const drawFallback = Number(raw.draw_odds ?? raw.drawOdds);
+  const awayFallback = Number(raw.away_odds ?? raw.awayOdds);
+
+  const home = Number.isFinite(homeDirect) ? homeDirect : homeFallback;
+  const draw = Number.isFinite(drawDirect) ? drawDirect : drawFallback;
+  const away = Number.isFinite(awayDirect) ? awayDirect : awayFallback;
+
+  if (home > 1 && draw > 1 && away > 1) {
+    return {
+      home,
+      draw,
+      away,
+      bookmaker: normalizeText(direct.bookmaker ?? raw.bookmaker, ""),
+      market: normalizeText(direct.market ?? raw.market, "1x2"),
+      source: normalizeText(direct.source ?? raw.source, ""),
+      updatedAt: normalizeText(direct.updatedAt ?? raw.updatedAt, ""),
+    };
+  }
+
+  return undefined;
+}
+
 export function adaptLiveMatch(raw: unknown, index: number): Match {
   const item = (raw ?? {}) as Record<string, unknown>;
   const ts = Number(item.match_time ?? item.time ?? 0);
   const minute = Number(item.minute ?? 0);
-  const score = parseScore(item.score);
+  const score = parseScore(item.score ?? item.ss);
 
   return {
     id: String(item.id ?? `live-${index}`),
+    source: normalizeText(item.source, "betsapi"),
     leagueName:
       String(
         item.league_name ?? (item.league as { name?: string })?.name ?? "Liga",
       ).trim() || "Liga",
     leagueCountry:
       typeof item.league_country === "string" ? item.league_country : undefined,
+    phase: "live",
     minute: Number.isFinite(minute) && minute > 0 ? minute : undefined,
     status: "live",
     isLive: true,
@@ -161,21 +367,26 @@ export function adaptLiveMatch(raw: unknown, index: number): Match {
           })
         : "--:--",
     score,
+    odds: parseMatchOdds(item),
     homeTeam: {
-      id: String(item.home_id ?? `h-${index}`),
-      name: String(
-        item.home_team ??
-          (item.home as { name?: string })?.name ??
-          "Time da casa",
-      ),
+      id: extractTeamId(item.home, `h-${index}`, [
+        item.home_id,
+        item.home_team_external_id,
+      ]),
+      name: extractTeamName(item.homeTeam, "Time da casa", [
+        item.home_team,
+        item.home,
+      ]),
     },
     awayTeam: {
-      id: String(item.away_id ?? `a-${index}`),
-      name: String(
-        item.away_team ??
-          (item.away as { name?: string })?.name ??
-          "Time visitante",
-      ),
+      id: extractTeamId(item.away, `a-${index}`, [
+        item.away_id,
+        item.away_team_external_id,
+      ]),
+      name: extractTeamName(item.awayTeam, "Time visitante", [
+        item.away_team,
+        item.away,
+      ]),
     },
     miniInsight:
       "Leitura em andamento: aguardando consolidacao completa do contexto recente.",
@@ -184,24 +395,49 @@ export function adaptLiveMatch(raw: unknown, index: number): Match {
 
 export function adaptLiveReplayMatch(raw: unknown, index: number): Match {
   const item = (raw ?? {}) as Record<string, unknown>;
-  const score = parseScore(item.score);
-  const minute = toMinute(item.minute, 67);
+  const source = normalizeText(item.source, "statsbomb-replay").toLowerCase();
+  const status = normalizeMatchStatus(item);
+  const score = parseScore(item.score ?? item.ss);
+  const minute = status === "live" ? toLiveMinute(item.minute, 0) : undefined;
+  const kickoffFallback = source === "betsapi" ? "Ao vivo" : "Replay";
+  const homeRef = item.home ?? item.homeTeam;
+  const awayRef = item.away ?? item.awayTeam;
 
   return {
     id: String(item.id ?? `live-replay-${index}`),
-    leagueName: normalizeText(item.competition, "StatsBomb Replay"),
-    status: "live",
-    isLive: true,
+    source,
+    leagueName: extractCompetitionName(item.competition, "StatsBomb Replay"),
+    phase: status,
+    status,
+    isLive: source === "betsapi" && status === "live",
     minute,
-    kickoffLabel: normalizeText(item.kickoff, "Replay"),
+    kickoffLabel: normalizeKickoffLabel(
+      item.kickoff ?? item.matchDate ?? item.time,
+      kickoffFallback,
+    ),
     score,
+    odds: parseMatchOdds(item),
     homeTeam: {
-      id: String(item.id ?? `h-r-${index}`),
-      name: normalizeText(item.homeTeam, "Time da casa"),
+      id: extractTeamId(homeRef, `h-r-${index}`, [
+        item.home_id,
+        item.home_team_external_id,
+      ]),
+      name: extractTeamName(item.homeTeam, "Time da casa", [
+        item.home_team,
+        item.home,
+        item.O1,
+      ]),
     },
     awayTeam: {
-      id: String(item.id ?? `a-r-${index}`),
-      name: normalizeText(item.awayTeam, "Time visitante"),
+      id: extractTeamId(awayRef, `a-r-${index}`, [
+        item.away_id,
+        item.away_team_external_id,
+      ]),
+      name: extractTeamName(item.awayTeam, "Time visitante", [
+        item.away_team,
+        item.away,
+        item.O2,
+      ]),
     },
     miniInsight: normalizeText(
       item.miniInsight,
@@ -213,6 +449,16 @@ export function adaptLiveReplayMatch(raw: unknown, index: number): Match {
 export function adaptMatchDetail(raw: unknown, fallback: Match): Match {
   const item = (raw ?? {}) as Record<string, unknown>;
   const status = normalizeMatchStatus(item);
+  const state = (item.state ?? {}) as Record<string, unknown>;
+  const homeState = (state.home ?? {}) as Record<string, unknown>;
+  const awayState = (state.away ?? {}) as Record<string, unknown>;
+  const scoreCandidate =
+    item.score ??
+    item.result ??
+    item.ss ??
+    (homeState.goals !== undefined || awayState.goals !== undefined
+      ? { home: homeState.goals, away: awayState.goals }
+      : fallback.score);
   const ts = Number(item.match_time ?? item.time ?? 0);
   const minute =
     status === "live"
@@ -224,6 +470,7 @@ export function adaptMatchDetail(raw: unknown, fallback: Match): Match {
 
   return {
     id: String(item.id ?? item.external_id ?? fallback.id),
+    source: normalizeText(item.source, fallback.source ?? "fallback"),
     leagueName: normalizeText(
       item.league_name ?? (item.league as { name?: string })?.name,
       fallback.leagueName,
@@ -232,6 +479,7 @@ export function adaptMatchDetail(raw: unknown, fallback: Match): Match {
       typeof item.league_country === "string"
         ? item.league_country
         : fallback.leagueCountry,
+    phase: status,
     minute,
     status,
     isLive: status === "live",
@@ -242,20 +490,26 @@ export function adaptMatchDetail(raw: unknown, fallback: Match): Match {
             minute: "2-digit",
           })
         : fallback.kickoffLabel,
-    score: parseScore(item.score ?? item.result ?? fallback.score),
+    score: parseScore(scoreCandidate),
     homeTeam: {
-      id: String(item.home_id ?? fallback.homeTeam.id),
-      name: normalizeText(
-        item.home_team ?? (item.home as { name?: string })?.name,
-        fallback.homeTeam.name,
-      ),
+      id: extractTeamId(item.homeTeam ?? item.home, fallback.homeTeam.id, [
+        item.home_id,
+        item.home_team_external_id,
+      ]),
+      name: extractTeamName(item.homeTeam, fallback.homeTeam.name, [
+        item.home_team,
+        item.home,
+      ]),
     },
     awayTeam: {
-      id: String(item.away_id ?? fallback.awayTeam.id),
-      name: normalizeText(
-        item.away_team ?? (item.away as { name?: string })?.name,
-        fallback.awayTeam.name,
-      ),
+      id: extractTeamId(item.awayTeam ?? item.away, fallback.awayTeam.id, [
+        item.away_id,
+        item.away_team_external_id,
+      ]),
+      name: extractTeamName(item.awayTeam, fallback.awayTeam.name, [
+        item.away_team,
+        item.away,
+      ]),
     },
     miniInsight: fallback.miniInsight,
   };
@@ -272,7 +526,9 @@ export function adaptReplayMatchDetail(raw: unknown, fallback: Match): Match {
 
   return {
     id: String(item.id ?? fallback.id),
+    source: normalizeText(item.source, fallback.source ?? "statsbomb-replay"),
     leagueName: normalizeText(competition.name, fallback.leagueName),
+    phase: "live",
     status: "live",
     isLive: true,
     minute: toMinute(state.minute, fallback.minute ?? 67),
@@ -285,11 +541,11 @@ export function adaptReplayMatchDetail(raw: unknown, fallback: Match): Match {
       away: toMinute(awayState.goals, fallback.score.away),
     },
     homeTeam: {
-      id: String(homeTeam.id ?? fallback.homeTeam.id),
+      id: extractTeamId(homeTeam, fallback.homeTeam.id, [item.home_id]),
       name: normalizeText(homeTeam.name, fallback.homeTeam.name),
     },
     awayTeam: {
-      id: String(awayTeam.id ?? fallback.awayTeam.id),
+      id: extractTeamId(awayTeam, fallback.awayTeam.id, [item.away_id]),
       name: normalizeText(awayTeam.name, fallback.awayTeam.name),
     },
     miniInsight: sanitizeModelText(state.miniInsight, fallback.miniInsight),
@@ -405,6 +661,19 @@ export function adaptReplayPredictions(
   fallback: Prediction[],
   context?: ReplayPredictionContext,
 ): Prediction[] {
+  const fallbackById = new Map(fallback.map((item) => [item.id, item]));
+  const getBasePrediction = (id: string, defaults: Prediction): Prediction => {
+    const fromFallback = fallbackById.get(id);
+    if (!fromFallback) {
+      return defaults;
+    }
+
+    return {
+      ...defaults,
+      ...fromFallback,
+    };
+  };
+
   const item = (raw ?? {}) as Record<string, unknown>;
   const winner =
     ((item.winnerProbability as Record<string, unknown> | undefined)
@@ -419,7 +688,16 @@ export function adaptReplayPredictions(
 
   const mapped: Record<string, Prediction> = {
     "p-home-win": {
-      ...fallback.find((f) => f.id === "p-home-win")!,
+      ...getBasePrediction("p-home-win", {
+        id: "p-home-win",
+        name: `Vitoria de ${context?.homeTeamName ?? "time da casa"}`,
+        probability: 0,
+        confidence: "baixa",
+        trend: "estavel",
+        summary:
+          "Ainda nao ha dados suficientes para estimar este indicador com confianca.",
+        why: "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
+      }),
       name: `Vitoria de ${context?.homeTeamName ?? "time da casa"}`,
       probability: toMinute(winner.home, 0),
       trend: normalizeTrend(
@@ -460,7 +738,16 @@ export function adaptReplayPredictions(
             : "baixa",
     },
     "p-next-goal": {
-      ...fallback.find((f) => f.id === "p-next-goal")!,
+      ...getBasePrediction("p-next-goal", {
+        id: "p-next-goal",
+        name: "Proximo gol nos proximos 10 min",
+        probability: 0,
+        confidence: "baixa",
+        trend: "estavel",
+        summary:
+          "Ainda nao ha dados suficientes para estimar este indicador com confianca.",
+        why: "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
+      }),
       name: "Proximo gol nos proximos 10 min",
       probability: Math.max(
         toMinute(nextGoal.home, 0),
@@ -482,7 +769,16 @@ export function adaptReplayPredictions(
       ),
     },
     "p-card": {
-      ...fallback.find((f) => f.id === "p-card")!,
+      ...getBasePrediction("p-card", {
+        id: "p-card",
+        name: "Chance de cartao nos proximos 15 min",
+        probability: 0,
+        confidence: "baixa",
+        trend: "estavel",
+        summary:
+          "Ainda nao ha dados suficientes para estimar este indicador com confianca.",
+        why: "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
+      }),
       name: "Chance de cartao nos proximos 15 min",
       probability: toMinute(card.total, toMinute(item.cardRisk as unknown, 0)),
       trend: normalizeTrend(
@@ -499,7 +795,16 @@ export function adaptReplayPredictions(
       ),
     },
     "p-comeback": {
-      ...fallback.find((f) => f.id === "p-comeback")!,
+      ...getBasePrediction("p-comeback", {
+        id: "p-comeback",
+        name: "Chance de empate ou virada",
+        probability: 0,
+        confidence: "baixa",
+        trend: "estavel",
+        summary:
+          "Ainda nao ha dados suficientes para estimar este indicador com confianca.",
+        why: "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
+      }),
       name: "Chance de empate ou virada",
       probability: toMinute(
         (item.comebackChance as Record<string, unknown> | undefined)
@@ -521,7 +826,16 @@ export function adaptReplayPredictions(
       ),
     },
     "p-penalty": {
-      ...fallback.find((f) => f.id === "p-penalty")!,
+      ...getBasePrediction("p-penalty", {
+        id: "p-penalty",
+        name: "Chance de penalti",
+        probability: 0,
+        confidence: "baixa",
+        trend: "estavel",
+        summary:
+          "Ainda nao ha dados suficientes para estimar este indicador com confianca.",
+        why: "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
+      }),
       name: "Chance de penalti",
       probability: toMinute(
         (item.penaltyRisk as Record<string, unknown> | undefined)?.probability,
@@ -542,9 +856,21 @@ export function adaptReplayPredictions(
     },
   };
 
-  return fallback.map(
-    (itemFallback) => mapped[itemFallback.id] ?? itemFallback,
-  );
+  const orderedIds = [
+    "p-home-win",
+    "p-next-goal",
+    "p-card",
+    "p-comeback",
+    "p-penalty",
+  ];
+
+  return orderedIds
+    .map((id) => mapped[id])
+    .filter((row) => Number.isFinite(row.probability) && row.probability > 0)
+    .map((row) => ({
+      ...row,
+      probability: Math.max(0, Math.min(100, row.probability)),
+    }));
 }
 
 export function adaptTimeline(
@@ -623,8 +949,8 @@ export function adaptReplayMomentum(
 
   return {
     minute: toMinute(item.minute, fallback.minute),
-    home: toMinute(item.homeMomentum, fallback.home),
-    away: toMinute(item.awayMomentum, fallback.away),
+    home: toMinute(item.homeMomentum ?? item.home, fallback.home),
+    away: toMinute(item.awayMomentum ?? item.away, fallback.away),
     trend:
       trendRaw === "home_up"
         ? "subindo"
@@ -638,17 +964,28 @@ export function adaptReplayMomentum(
 export function adaptUpcomingMatch(raw: unknown, index: number): Match {
   const item = (raw ?? {}) as Record<string, unknown>;
   const ts = Number(item.match_time ?? item.time ?? 0);
+  const status = normalizeMatchStatus(item);
+  const score = parseScore(item.score ?? item.ss);
+  const minute =
+    status === "live"
+      ? toMinute(item.minute ?? item.played_time ?? item.elapsed, 0)
+      : undefined;
 
   return {
-    id: String(item.id ?? `upcoming-${index}`),
+    // Em /matches/upcoming do backend, `id` pode ser interno de banco;
+    // para rota de detalhe usamos prioridade para external_id.
+    id: String(item.external_id ?? item.id ?? `upcoming-${index}`),
+    source: normalizeText(item.source, "local"),
     leagueName:
       String(
         item.league_name ?? (item.league as { name?: string })?.name ?? "Liga",
       ).trim() || "Liga",
     leagueCountry:
       typeof item.league_country === "string" ? item.league_country : undefined,
-    status: "upcoming",
-    isLive: false,
+    phase: status,
+    minute,
+    status,
+    isLive: status === "live",
     kickoffLabel:
       ts > 0
         ? new Date(ts * 1000).toLocaleString("pt-BR", {
@@ -658,22 +995,27 @@ export function adaptUpcomingMatch(raw: unknown, index: number): Match {
             minute: "2-digit",
           })
         : "Em breve",
-    score: { home: 0, away: 0 },
+    score,
+    odds: parseMatchOdds(item),
     homeTeam: {
-      id: String(item.home_id ?? `h-u-${index}`),
-      name: String(
-        item.home_team ??
-          (item.home as { name?: string })?.name ??
-          "Time da casa",
-      ),
+      id: extractTeamId(item.home, `h-u-${index}`, [
+        item.home_id,
+        item.home_team_external_id,
+      ]),
+      name: extractTeamName(item.homeTeam, "Time da casa", [
+        item.home_team,
+        item.home,
+      ]),
     },
     awayTeam: {
-      id: String(item.away_id ?? `a-u-${index}`),
-      name: String(
-        item.away_team ??
-          (item.away as { name?: string })?.name ??
-          "Time visitante",
-      ),
+      id: extractTeamId(item.away, `a-u-${index}`, [
+        item.away_id,
+        item.away_team_external_id,
+      ]),
+      name: extractTeamName(item.awayTeam, "Time visitante", [
+        item.away_team,
+        item.away,
+      ]),
     },
     miniInsight:
       "Pre-jogo em preparacao: tendencias iniciais serao atualizadas com sinais de escalao e forma recente.",

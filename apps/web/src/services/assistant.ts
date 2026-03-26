@@ -1,16 +1,16 @@
 import api, { getUpcomingMatches } from "@/services/api";
 import {
+  ConfidenceLevel,
   Match,
   MatchAnalysisBundle,
   ModelExplanationSection,
   PreMatchAnalysis,
 } from "@/types";
 import {
+  adaptMatchDetail,
   adaptLiveReplayMatch,
   adaptReplayMatchDetail,
-  adaptReplayPredictions,
   adaptReplayTimeline,
-  adaptReplayMomentum,
   adaptUpcomingMatch,
   attachMatchToAnalysis,
 } from "@/lib/adapters/assistant-adapters";
@@ -42,9 +42,45 @@ export type MatchAnalysisSectionStatus = {
 export type MatchAnalysisResolved = {
   bundle: MatchAnalysisBundle;
   sectionStatus: MatchAnalysisSectionStatus;
+  availability: MatchDetailAvailability;
   hasPartialFallback: boolean;
   experience: ExperienceMeta;
 };
+
+export type SectionAvailability = {
+  available: boolean;
+  reasonUnavailable?: string;
+  confidence: ConfidenceLevel;
+};
+
+export type MatchDetailAvailability = {
+  probabilities: SectionAvailability;
+  headToHead: SectionAvailability;
+  teamComparisons: SectionAvailability;
+  factors: SectionAvailability;
+  momentum: SectionAvailability;
+  timeline: SectionAvailability;
+  scenarios: SectionAvailability;
+  insights: SectionAvailability;
+  keyPlayers: SectionAvailability;
+};
+
+const UNAVAILABLE = {
+  probabilities:
+    "Ainda nao ha dados suficientes para estimar este indicador com confianca.",
+  teamComparisons: "Comparativo indisponivel com os dados atuais da partida.",
+  factors:
+    "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
+  momentum:
+    "Ainda nao ha dados suficientes para estimar este indicador com confianca.",
+  timeline: "Ainda nao ha eventos recentes suficientes para compor a timeline.",
+  scenarios:
+    "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
+  insights:
+    "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
+  keyPlayers:
+    "Dados insuficientes para destacar jogadores influentes nesta partida.",
+} as const;
 
 type LiveMatchesResolved = {
   matches: Match[];
@@ -96,26 +132,29 @@ function resolveExperienceMeta(
 function buildTechnicalBundle(match: Match): MatchAnalysisBundle {
   return {
     match,
+    odds: undefined,
     headlineInsight: {
-      id: "tech-headline",
-      title: "Leitura em consolidacao",
-      text: "Dados ao vivo em consolidacao. A leitura sera refinada a cada atualizacao.",
+      id: "headline-unavailable",
+      title: "Leitura parcial",
+      text: "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
       tone: "neutro",
     },
     recentContext:
-      "Contexto parcial disponivel. Os blocos serao enriquecidos conforme novos sinais chegarem.",
+      "Ainda nao ha dados suficientes para estimar este indicador com confianca.",
     winnerProbabilities: {
-      home: 34,
-      draw: 33,
-      away: 33,
+      home: 0,
+      draw: 0,
+      away: 0,
     },
     momentum: {
       minute: match.minute ?? 0,
-      home: 50,
-      away: 50,
+      home: 0,
+      away: 0,
       trend: "estavel",
-      summary: "Momentum neutro enquanto sinais detalhados sao processados.",
+      summary:
+        "Informacoes insuficientes nesta partida para gerar esta leitura em tempo real.",
     },
+    headToHead: undefined,
     predictions: [],
     factors: [],
     timeline: [],
@@ -167,6 +206,177 @@ function sanitizeEditorialText(value: unknown, fallback: string): string {
     .trim();
 
   return cleaned || fallback;
+}
+
+function hasMeaningfulComparison(bundle: MatchAnalysisBundle): boolean {
+  const validRows = bundle.teamComparisons.filter(
+    (row) => Number(row.homeValue) > 0 || Number(row.awayValue) > 0,
+  );
+  return validRows.length >= 2;
+}
+
+function hasMeaningfulHeadToHead(bundle: MatchAnalysisBundle): boolean {
+  const summary = String(bundle.headToHead?.summary ?? "").trim();
+  const homeForm = String(bundle.headToHead?.homeForm ?? "").trim();
+  const awayForm = String(bundle.headToHead?.awayForm ?? "").trim();
+
+  return summary.length >= 8 || homeForm.length > 0 || awayForm.length > 0;
+}
+
+function hasMeaningfulPredictions(bundle: MatchAnalysisBundle): boolean {
+  return bundle.predictions.some(
+    (row) =>
+      Number.isFinite(row.probability) &&
+      row.probability > 0 &&
+      String(row.name ?? "").trim().length > 0,
+  );
+}
+
+function hasMeaningfulFactors(bundle: MatchAnalysisBundle): boolean {
+  return bundle.factors.some(
+    (row) =>
+      String(row.label ?? "").trim().length > 0 &&
+      Number.isFinite(row.value) &&
+      row.value > 0,
+  );
+}
+
+function hasMeaningfulMomentum(bundle: MatchAnalysisBundle): boolean {
+  const home = Number(bundle.momentum.home);
+  const away = Number(bundle.momentum.away);
+  const minute = Number(bundle.momentum.minute);
+
+  return (
+    Number.isFinite(home) &&
+    Number.isFinite(away) &&
+    home >= 0 &&
+    away >= 0 &&
+    home + away > 0 &&
+    Number.isFinite(minute) &&
+    minute > 0
+  );
+}
+
+function hasMeaningfulTimeline(bundle: MatchAnalysisBundle): boolean {
+  return bundle.timeline.some(
+    (event) =>
+      Number.isFinite(event.minute) &&
+      event.minute > 0 &&
+      String(event.title ?? "").trim().length >= 4 &&
+      String(event.description ?? "").trim().length >= 8,
+  );
+}
+
+function hasMeaningfulScenarios(bundle: MatchAnalysisBundle): boolean {
+  return bundle.scenarios.some(
+    (row) =>
+      Number.isFinite(row.probability) &&
+      row.probability > 0 &&
+      String(row.title ?? "").trim().length > 0 &&
+      String(row.explanation ?? "").trim().length > 0,
+  );
+}
+
+function hasUsefulInsights(bundle: MatchAnalysisBundle): boolean {
+  if (
+    bundle.textualInsights.some(
+      (item) =>
+        String(item.title ?? "").trim().length > 0 &&
+        String(item.text ?? "").trim().length >= 12,
+    )
+  ) {
+    return true;
+  }
+
+  const headline = String(bundle.headlineInsight.text ?? "").trim();
+  return (
+    headline.length > 0 &&
+    !headline.includes("Informacoes insuficientes nesta partida")
+  );
+}
+
+function hasMeaningfulKeyPlayers(bundle: MatchAnalysisBundle): boolean {
+  return bundle.keyPlayers.some(
+    (row) =>
+      String(row.name ?? "").trim().length > 0 &&
+      String(row.team ?? "").trim().length > 0 &&
+      Number.isFinite(row.probability) &&
+      row.probability > 0,
+  );
+}
+
+function buildAvailability(
+  bundle: MatchAnalysisBundle,
+  sectionStatus: MatchAnalysisSectionStatus,
+): MatchDetailAvailability {
+  const probabilitiesAvailable =
+    sectionStatus.predictions === "api" && hasMeaningfulPredictions(bundle);
+  const headToHeadAvailable = hasMeaningfulHeadToHead(bundle);
+  const comparisonsAvailable = hasMeaningfulComparison(bundle);
+  const factorsAvailable = hasMeaningfulFactors(bundle);
+  const momentumAvailable =
+    sectionStatus.momentum === "api" && hasMeaningfulMomentum(bundle);
+  const timelineAvailable =
+    sectionStatus.timeline === "api" && hasMeaningfulTimeline(bundle);
+  const scenariosAvailable = hasMeaningfulScenarios(bundle);
+  const insightsAvailable = hasUsefulInsights(bundle);
+  const keyPlayersAvailable = hasMeaningfulKeyPlayers(bundle);
+
+  return {
+    probabilities: {
+      available: probabilitiesAvailable,
+      reasonUnavailable: probabilitiesAvailable
+        ? undefined
+        : UNAVAILABLE.probabilities,
+      confidence: probabilitiesAvailable ? "media" : "baixa",
+    },
+    headToHead: {
+      available: headToHeadAvailable,
+      reasonUnavailable: headToHeadAvailable
+        ? undefined
+        : "Historico de confrontos diretos indisponivel com os dados atuais.",
+      confidence: headToHeadAvailable ? "media" : "baixa",
+    },
+    teamComparisons: {
+      available: comparisonsAvailable,
+      reasonUnavailable: comparisonsAvailable
+        ? undefined
+        : UNAVAILABLE.teamComparisons,
+      confidence: comparisonsAvailable ? "media" : "baixa",
+    },
+    factors: {
+      available: factorsAvailable,
+      reasonUnavailable: factorsAvailable ? undefined : UNAVAILABLE.factors,
+      confidence: factorsAvailable ? "media" : "baixa",
+    },
+    momentum: {
+      available: momentumAvailable,
+      reasonUnavailable: momentumAvailable ? undefined : UNAVAILABLE.momentum,
+      confidence: momentumAvailable ? "media" : "baixa",
+    },
+    timeline: {
+      available: timelineAvailable,
+      reasonUnavailable: timelineAvailable ? undefined : UNAVAILABLE.timeline,
+      confidence: timelineAvailable ? "media" : "baixa",
+    },
+    scenarios: {
+      available: scenariosAvailable,
+      reasonUnavailable: scenariosAvailable ? undefined : UNAVAILABLE.scenarios,
+      confidence: scenariosAvailable ? "media" : "baixa",
+    },
+    insights: {
+      available: insightsAvailable,
+      reasonUnavailable: insightsAvailable ? undefined : UNAVAILABLE.insights,
+      confidence: insightsAvailable ? "media" : "baixa",
+    },
+    keyPlayers: {
+      available: keyPlayersAvailable,
+      reasonUnavailable: keyPlayersAvailable
+        ? undefined
+        : UNAVAILABLE.keyPlayers,
+      confidence: keyPlayersAvailable ? "media" : "baixa",
+    },
+  };
 }
 
 function isFulfilled<T>(
@@ -239,37 +449,24 @@ export async function getMatchAnalysis(
 export async function getMatchAnalysisResolved(
   matchId: string,
 ): Promise<MatchAnalysisResolved> {
-  const [matchResult, predictionResult, timelineResult, momentumResult] =
-    await Promise.allSettled([
-      api.get(`/matches/${matchId}?minute=67`),
-      api.get(`/matches/${matchId}/predictions?minute=67`),
-      api.get(`/matches/${matchId}/timeline?minute=67`),
-      api.get(`/matches/${matchId}/momentum?minute=67`),
-    ]);
+  const [matchResult, timelineResult] = await Promise.allSettled([
+    api.get(`/matches/${matchId}?minute=67`),
+    api.get(`/matches/${matchId}/timeline?minute=67`),
+  ]);
 
   const matchFromApi = isFulfilled(matchResult)
     ? (matchResult.value as { data: Record<string, unknown> }).data
     : null;
-  const predictionFromApi = isFulfilled(predictionResult)
-    ? (predictionResult.value as { data: Record<string, unknown> }).data
-    : null;
   const timelineFromApi = isFulfilled(timelineResult)
     ? (timelineResult.value as { data: Record<string, unknown> }).data
-    : null;
-  const momentumFromApi = isFulfilled(momentumResult)
-    ? (momentumResult.value as { data: Record<string, unknown> }).data
     : null;
 
   const sectionStatus: MatchAnalysisSectionStatus = {
     match: matchFromApi && !isFallbackPayload(matchFromApi) ? "api" : "mock",
-    predictions:
-      predictionFromApi && !isFallbackPayload(predictionFromApi)
-        ? "api"
-        : "mock",
+    predictions: "mock",
     timeline:
       timelineFromApi && !isFallbackPayload(timelineFromApi) ? "api" : "mock",
-    momentum:
-      momentumFromApi && !isFallbackPayload(momentumFromApi) ? "api" : "mock",
+    momentum: "mock",
     scenarios: "mock",
     keyPlayers: "mock",
   };
@@ -280,62 +477,28 @@ export async function getMatchAnalysisResolved(
 
   const technicalMatch = buildTechnicalMatch(matchId);
 
-  const match = adaptReplayMatchDetail(matchFromApi, technicalMatch);
+  const matchSource = String(
+    (matchFromApi as Record<string, unknown>).source ?? "",
+  )
+    .trim()
+    .toLowerCase();
+  const match =
+    matchSource === "statsbomb-replay"
+      ? adaptReplayMatchDetail(matchFromApi, technicalMatch)
+      : adaptMatchDetail(matchFromApi, technicalMatch);
 
   const base = attachMatchToAnalysis(buildTechnicalBundle(match), match);
 
   const bundle: MatchAnalysisBundle = {
     ...base,
-    predictions: isFulfilled(predictionResult)
-      ? adaptReplayPredictions(
-          (predictionResult.value as any).data,
-          base.predictions,
-          {
-            homeTeamName: match.homeTeam.name,
-            awayTeamName: match.awayTeam.name,
-            homeScore: match.score.home,
-            awayScore: match.score.away,
-          },
-        )
-      : base.predictions,
+    predictions: base.predictions,
     timeline: isFulfilled(timelineResult)
       ? adaptReplayTimeline((timelineResult.value as any).data, base.timeline)
       : base.timeline,
-    momentum: isFulfilled(momentumResult)
-      ? adaptReplayMomentum((momentumResult.value as any).data, base.momentum)
-      : base.momentum,
+    momentum: base.momentum,
     scenarios: base.scenarios,
     keyPlayers: base.keyPlayers,
   };
-
-  if (isFulfilled(predictionResult)) {
-    const predictionData = (predictionResult.value as any).data as Record<
-      string,
-      unknown
-    >;
-    const winnerBlock = (predictionData.winnerProbability ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const winner = (winnerBlock.probability ?? {}) as Record<string, unknown>;
-
-    bundle.winnerProbabilities = {
-      home:
-        Number(winner.home ?? bundle.winnerProbabilities.home) ||
-        bundle.winnerProbabilities.home,
-      draw:
-        Number(winner.draw ?? bundle.winnerProbabilities.draw) ||
-        bundle.winnerProbabilities.draw,
-      away:
-        Number(winner.away ?? bundle.winnerProbabilities.away) ||
-        bundle.winnerProbabilities.away,
-    };
-
-    bundle.recentContext = sanitizeEditorialText(
-      winnerBlock.explanation,
-      bundle.recentContext,
-    );
-  }
 
   if (isFulfilled(matchResult)) {
     const matchData = (matchResult.value as any).data as Record<
@@ -343,7 +506,9 @@ export async function getMatchAnalysisResolved(
       unknown
     >;
     const state = (matchData.state ?? {}) as Record<string, unknown>;
-    const recentEvents = (state.recentEvents ?? []) as string[];
+    const recentEvents = ((state.recentEvents ?? []) as string[])
+      .map((item) => String(item ?? "").trim())
+      .filter((item) => item.length > 0);
 
     bundle.headlineInsight = {
       ...bundle.headlineInsight,
@@ -392,7 +557,7 @@ export async function getMatchAnalysisResolved(
         homeValue: Number(homeStats.yellowCards ?? 0),
         awayValue: Number(awayStats.yellowCards ?? 0),
       },
-    ];
+    ].filter((row) => Number(row.homeValue) > 0 || Number(row.awayValue) > 0);
   }
 
   const hasPartialFallback =
@@ -401,6 +566,8 @@ export async function getMatchAnalysisResolved(
     sectionStatus.timeline === "mock" ||
     sectionStatus.momentum === "mock";
 
+  const availability = buildAvailability(bundle, sectionStatus);
+
   const experience = resolveExperienceMeta(
     (matchFromApi as Record<string, unknown> | null) ?? null,
   );
@@ -408,6 +575,7 @@ export async function getMatchAnalysisResolved(
   return {
     bundle,
     sectionStatus,
+    availability,
     hasPartialFallback,
     experience,
   };

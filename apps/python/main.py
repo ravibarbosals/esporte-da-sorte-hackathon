@@ -13,6 +13,8 @@ from services.statsbomb_replay import (
     get_pre_match_analysis,
 )
 from services.betsapi import (
+    get_event_view,
+    get_events_inplay,
     get_live_match,
     get_live_matches,
     get_live_momentum,
@@ -54,6 +56,16 @@ def match_odds(event_id: str):
 @app.get("/betsapi/matches/live")
 def betsapi_live_matches(limit: int = 10):
     return get_live_matches(limit=limit)
+
+
+@app.get("/betsapi/events/inplay")
+def betsapi_events_inplay(sport_id: int = 1):
+    return get_events_inplay(sport_id=sport_id)
+
+
+@app.get("/betsapi/events/{event_id}/view")
+def betsapi_event_view(event_id: str):
+    return get_event_view(event_id=event_id)
 
 
 @app.get("/betsapi/matches/{match_id}")

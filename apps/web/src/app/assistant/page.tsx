@@ -17,6 +17,7 @@ export default function AssistantPage() {
   const {
     featured,
     liveMatches,
+    replayMatches,
     loading,
     isRefreshing,
     lastUpdated,
@@ -152,33 +153,44 @@ export default function AssistantPage() {
 
       <section>
         <SectionHeader
-          title={
-            experience.mode === "replay"
-              ? "Partidas em replay analitico"
-              : "Partidas ao vivo"
-          }
-          subtitle="Cada jogo com mini insight contextual"
+          title="Partidas ao vivo (BetsAPI)"
+          subtitle="Somente jogos ao vivo reais"
           rightSlot={
             <Link
               href="/live"
-              className={`text-sm font-semibold ${
-                experience.mode === "live"
-                  ? "text-emerald-300 hover:text-emerald-200"
-                  : "text-sky-300 hover:text-sky-200"
-              }`}
+              className="text-sm font-semibold text-emerald-300 hover:text-emerald-200"
             >
-              {experience.mode === "replay"
-                ? "Ver central de replay"
-                : "Ver central ao vivo"}
+              Ver central ao vivo
             </Link>
           }
         />
-        <div className="grid gap-3 md:grid-cols-2">
-          {liveMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
-          ))}
-        </div>
+        {liveMatches.length === 0 ? (
+          <EmptyState
+            title="Nenhuma partida ao vivo no momento."
+            description="Quando a BetsAPI identificar jogos em andamento, eles aparecem aqui automaticamente."
+          />
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {liveMatches.map((match) => (
+              <MatchCard key={match.id} match={match} />
+            ))}
+          </div>
+        )}
       </section>
+
+      {replayMatches.length > 0 ? (
+        <section>
+          <SectionHeader
+            title="Replay analitico"
+            subtitle="Partidas de replay separadas do ao vivo real"
+          />
+          <div className="grid gap-3 md:grid-cols-2">
+            {replayMatches.map((match) => (
+              <MatchCard key={match.id} match={match} highlightLive={false} />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

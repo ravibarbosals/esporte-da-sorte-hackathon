@@ -1,41 +1,71 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASS}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-esporte_da_sorte}
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-esporte_da_sorte}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
-    build: ./apps/api
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASS}@postgres:5432/${DB_NAME}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      DB_NAME: ${DB_NAME:-esporte_da_sorte}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_SSL: "false"
+      PYTHON_API_URL: http://python:8000
+      BETSAPI_TOKEN: ${BETSAPI_TOKEN:-}
+      PORT: 3001
+      NODE_ENV: development
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      python:
+        condition: service_started
 
   web:
-    build: ./apps/web
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://api:3001
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NODE_ENV: development
     depends_on:
-      - api
+      api:
+        condition: service_started
 
   python:
-    build: ./apps/python
+    build:
+      context: ./apps/python
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    environment:
+      BETSAPI_TOKEN: ${BETSAPI_TOKEN:-}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:

@@ -15,15 +15,26 @@ export interface Team {
 
 export interface Match {
   id: string;
+  source?: string;
   leagueName: string;
   leagueCountry?: string;
   minute?: number;
+  phase?: MatchStatus;
   status: MatchStatus;
   isLive: boolean;
   kickoffLabel: string;
   score: {
     home: number;
     away: number;
+  };
+  odds?: {
+    home: number;
+    draw: number;
+    away: number;
+    bookmaker?: string;
+    market?: string;
+    source?: string;
+    updatedAt?: string;
   };
   homeTeam: Team;
   awayTeam: Team;
@@ -131,6 +142,15 @@ export interface ModelExplanationSection {
 
 export interface MatchAnalysisBundle {
   match: Match;
+  odds?: {
+    homeOdds: number;
+    drawOdds: number;
+    awayOdds: number;
+    bookmaker?: string;
+    market?: string;
+    source?: string;
+    updatedAt?: string;
+  };
   headlineInsight: Insight;
   recentContext: string;
   winnerProbabilities: {
@@ -139,6 +159,12 @@ export interface MatchAnalysisBundle {
     away: number;
   };
   momentum: LiveMomentumSnapshot;
+  headToHead?: {
+    homeForm: string;
+    awayForm: string;
+    summary: string;
+    interpretation?: string;
+  };
   predictions: Prediction[];
   factors: ModelFactor[];
   timeline: TimelineEvent[];

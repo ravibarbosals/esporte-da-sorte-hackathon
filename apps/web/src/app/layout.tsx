@@ -16,9 +16,9 @@ const bodyFont = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Esporte da Sorte - Assistente de Analise Esportiva",
+  title: "Esporte da Sorte - Central de Partidas",
   description:
-    "Assistente de leitura esportiva com contexto, previsoes e explicabilidade",
+    "Central de partidas com leitura esportiva orientada por dados reais",
 };
 
 export default function RootLayout({

@@ -11,6 +11,7 @@ TOKEN = os.getenv("BETSAPI_TOKEN")
 BASE_URL = "https://api.betsapi.com/v1"
 REQUEST_TIMEOUT_SECONDS = 10
 DEBUG_BETSAPI = os.getenv("DEBUG_BETSAPI", "1") == "1"
+AUDIT_BETSAPI = os.getenv("AUDIT_BETSAPI", "1") == "1"
 
 
 def _now_iso() -> str:
@@ -40,6 +41,17 @@ def _debug_log(message: str, payload: Optional[Dict[str, Any]] = None) -> None:
         return
 
     print(f"[betsapi-debug] {message} | {payload}")
+
+
+def _audit_log(message: str, payload: Optional[Dict[str, Any]] = None) -> None:
+    if not AUDIT_BETSAPI:
+        return
+
+    if payload is None:
+        print(f"[betsapi-audit] {message}")
+        return
+
+    print(f"[betsapi-audit] {message} | {payload}")
 
 
 def _request(path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -179,22 +191,71 @@ def _extract_event_id(raw: Dict[str, Any]) -> str:
     )
 
 
-def _normalize_live_match(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _classify_phase(raw: Dict[str, Any], force_live: bool = False) -> Tuple[str, bool, str]:
+    status = _safe_str(raw.get("status") or raw.get("time_status"), "")
+    status_signal = status.lower()
+    time_status = _safe_str(raw.get("time_status"), "")
+
+    inplay = str(raw.get("inplay") or raw.get("live") or "").lower() in ["1", "true", "yes"]
+    minute = _parse_match_minute(raw)
+    timer = raw.get("timer") if isinstance(raw.get("timer"), dict) else {}
+    timer_signal = _safe_str(timer.get("state") or timer.get("status") or timer.get("tt"), "").lower()
+
+    is_finished = (
+        time_status in ["2", "3"]
+        or "finished" in status_signal
+        or "ended" in status_signal
+        or status_signal in ["ft", "fulltime", "completed", "final"]
+    )
+    if is_finished:
+        return "finished", False, "finished"
+
+    is_live = (
+        force_live
+        or time_status == "1"
+        or inplay
+        or minute > 0
+        or any(token in status_signal for token in ["live", "inplay", "running"])
+        or any(token in timer_signal for token in ["1", "2", "live", "running"])
+    )
+    if is_live:
+        return "live", True, "live"
+
+    return "upcoming", False, "upcoming"
+
+
+def _normalize_live_match(
+    raw: Dict[str, Any],
+    source_endpoint: str,
+    discard_reasons: Dict[str, int],
+) -> Optional[Dict[str, Any]]:
     event_id = _extract_event_id(raw)
     if event_id == "unknown":
+        discard_reasons["missing_event_id"] = discard_reasons.get("missing_event_id", 0) + 1
+        return None
+
+    has_home = bool(raw.get("home") or raw.get("home_team") or raw.get("home_name") or raw.get("O1"))
+    has_away = bool(raw.get("away") or raw.get("away_team") or raw.get("away_name") or raw.get("O2"))
+    if not has_home or not has_away:
+        discard_reasons["missing_team_side"] = discard_reasons.get("missing_team_side", 0) + 1
         return None
 
     home_team, away_team = _extract_team_names(raw)
     home_score, away_score = _parse_score(raw.get("ss") or raw.get("score"))
     minute = _parse_match_minute(raw)
+    phase, is_live, status = _classify_phase(raw, force_live=True)
 
     return {
         "id": event_id,
         "source": "betsapi",
-        "status": "live",
+        "sourceEndpoint": source_endpoint,
+        "status": status,
+        "phase": phase,
+        "is_live": is_live,
         "competition": _extract_competition(raw),
         "matchDate": _safe_str(raw.get("time") or raw.get("match_date"), "Hoje"),
         "kickoff": _safe_str(raw.get("time") or raw.get("start_time"), "Ao vivo"),
+        "bet365_id": _safe_str(raw.get("bet365_id") or raw.get("FI"), ""),
         "minute": max(0, minute),
         "homeTeam": home_team,
         "awayTeam": away_team,
@@ -204,6 +265,28 @@ def _normalize_live_match(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             f"{home_team} x {away_team} em tempo real, com leitura atualizada no minuto {max(0, minute)}."
         ),
     }
+
+
+def _fetch_live_raw_candidates() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    endpoint_specs = [
+        ("/events/inplay", {"sport_id": 1}),
+        ("/bet365/inplay", None),
+    ]
+
+    merged: List[Dict[str, Any]] = []
+    endpoint_counts: Dict[str, int] = {}
+
+    for path, params in endpoint_specs:
+        payload = _request(path, params)
+        raw_items = _extract_results(payload)
+        endpoint_counts[path] = len(raw_items)
+
+        for row in raw_items:
+            copied = dict(row)
+            copied["_raw_endpoint"] = path
+            merged.append(copied)
+
+    return merged, endpoint_counts
 
 
 def _find_live_match(event_id: str) -> Optional[Dict[str, Any]]:
@@ -269,28 +352,59 @@ def _extract_three_way_odds(payload: Dict[str, Any]) -> Tuple[float, float, floa
 
 
 def get_live_matches(limit: int = 10) -> Dict[str, Any]:
-    payload = _request("/bet365/inplay")
-    normalized: List[Dict[str, Any]] = []
+    raw_candidates, endpoint_counts = _fetch_live_raw_candidates()
 
-    for raw in _extract_results(payload):
-        parsed = _normalize_live_match(raw)
+    seen_ids: set = set()
+    deduped_raw: List[Dict[str, Any]] = []
+    duplicate_count = 0
+
+    for raw in raw_candidates:
+        event_id = _extract_event_id(raw)
+        if event_id != "unknown" and event_id in seen_ids:
+            duplicate_count += 1
+            continue
+        if event_id != "unknown":
+            seen_ids.add(event_id)
+        deduped_raw.append(raw)
+
+    normalized: List[Dict[str, Any]] = []
+    discard_reasons: Dict[str, int] = {}
+    discarded_samples: List[Dict[str, Any]] = []
+
+    for raw in deduped_raw:
+        endpoint = _safe_str(raw.get("_raw_endpoint"), "unknown")
+        parsed = _normalize_live_match(raw, endpoint, discard_reasons)
         if parsed:
             normalized.append(parsed)
+        elif len(discarded_samples) < 10:
+            discarded_samples.append(
+                {
+                    "id": _extract_event_id(raw),
+                    "endpoint": endpoint,
+                    "time_status": raw.get("time_status"),
+                }
+            )
 
     normalized.sort(key=lambda m: m.get("minute", 0), reverse=True)
 
     selected = normalized[: max(1, limit)]
     top_minute = max([_to_int(item.get("minute"), 0) for item in selected], default=0)
 
-    _debug_log(
-        "live_normalization",
+    _audit_log(
+        "live_coverage",
         {
-            "endpoint": "/bet365/inplay",
+            "endpoints": endpoint_counts,
             "limit": limit,
-            "raw_items": len(_extract_results(payload)),
+            "raw_items_merged": len(raw_candidates),
+            "raw_items_deduped": len(deduped_raw),
+            "duplicates_removed": duplicate_count,
             "normalized_items": len(normalized),
             "returned_items": len(selected),
+            "discarded_items": len(deduped_raw) - len(normalized),
+            "discard_reasons": discard_reasons,
+            "discarded_samples": discarded_samples,
             "sample_ids": [str(item.get("id")) for item in selected[:3]],
+            "final_source": "betsapi",
         },
     )
 
@@ -298,22 +412,52 @@ def get_live_matches(limit: int = 10) -> Dict[str, Any]:
         "source": "betsapi",
         "updatedAt": _now_iso(),
         "minute": top_minute,
+        "audit": {
+            "endpoints": endpoint_counts,
+            "raw_items_deduped": len(deduped_raw),
+            "normalized_items": len(normalized),
+            "discard_reasons": discard_reasons,
+        }
+        if AUDIT_BETSAPI
+        else None,
         "matches": selected,
     }
 
 
 def get_live_match(match_id: str) -> Optional[Dict[str, Any]]:
     live = _find_live_match(match_id)
+    source_label = "betsapi-live"
     if not live:
-        return None
+        payload = _request("/event/view", {"event_id": match_id})
+        results = _extract_results(payload)
+        if not results:
+            _audit_log("event_detail_miss", {"match_id": str(match_id), "source": "/event/view"})
+            return None
+
+        raw = results[0]
+        source_label = "betsapi-event-view"
+        normalized = _normalize_live_match(raw, "/event/view", {})
+        if not normalized:
+            return None
+        live = normalized
 
     home_goals = _to_int((live.get("score") or {}).get("home"))
     away_goals = _to_int((live.get("score") or {}).get("away"))
     minute = _to_int(live.get("minute"), 0)
 
+    phase = _safe_str(live.get("phase"), "live")
+    is_live = bool(live.get("is_live", phase == "live"))
+    status = _safe_str(live.get("status"), "live")
+
     return {
         "id": str(live.get("id")),
         "source": "betsapi",
+        "sourceLabel": source_label,
+        "phase": phase,
+        "is_live": is_live,
+        "status": status,
+        "updatedAt": _now_iso(),
+        "last_synced_at": _now_iso(),
         "competition": {
             "id": None,
             "name": _safe_str(live.get("competition"), "BetsAPI Live"),
@@ -333,7 +477,9 @@ def get_live_match(match_id: str) -> Optional[Dict[str, Any]]:
         },
         "context": {
             "source": "betsapi",
-            "status": "live",
+            "phase": phase,
+            "is_live": is_live,
+            "status": status,
             "updatedAt": _now_iso(),
         },
         "state": {
@@ -404,9 +550,24 @@ def get_live_odds_or_probabilities(match_id: str) -> Optional[Dict[str, Any]]:
     if not match_detail:
         return None
 
-    odds_payload = _request("/bet365/prematch", {"FI": match_id})
+    event_view_payload = _request("/event/view", {"event_id": match_id})
+    event_view_results = _extract_results(event_view_payload)
+    event_view = event_view_results[0] if event_view_results else {}
+    fi = _safe_str(event_view.get("bet365_id") or event_view.get("FI") or match_id, str(match_id))
+
+    odds_payload = _request("/bet365/prematch", {"FI": fi})
     odds_home, odds_draw, odds_away = _extract_three_way_odds(odds_payload)
     winner_prob = _to_probability_from_odds(odds_home, odds_draw, odds_away)
+
+    _audit_log(
+        "odds_resolution",
+        {
+            "match_id": str(match_id),
+            "fi_used": fi,
+            "raw_items": len(_extract_results(odds_payload)),
+            "has_market": any([odds_home > 0, odds_draw > 0, odds_away > 0]),
+        },
+    )
 
     home_name = match_detail.get("homeTeam", {}).get("name", "Time da casa")
     away_name = match_detail.get("awayTeam", {}).get("name", "Time visitante")
@@ -414,7 +575,19 @@ def get_live_odds_or_probabilities(match_id: str) -> Optional[Dict[str, Any]]:
     return {
         "matchId": str(match_id),
         "source": "betsapi",
+        "status": "live",
+        "phase": "live",
+        "is_live": True,
         "updatedAt": _now_iso(),
+        "last_synced_at": _now_iso(),
+        "odds": {
+            "homeOdds": odds_home,
+            "drawOdds": odds_draw,
+            "awayOdds": odds_away,
+            "bookmaker": "bet365",
+            "market": "1x2",
+            "source": "betsapi",
+        },
         "winnerProbability": {
             "probability": winner_prob,
             "confidence": 0.65,
@@ -528,6 +701,14 @@ def get_leagues(sport_id=1):
 
 def get_upcoming_matches(sport_id=1):
     return _request("/events/upcoming", {"sport_id": sport_id})
+
+
+def get_events_inplay(sport_id=1):
+    return _request("/events/inplay", {"sport_id": sport_id})
+
+
+def get_event_view(event_id: str):
+    return _request("/event/view", {"event_id": event_id})
 
 
 def get_match_odds(event_id):

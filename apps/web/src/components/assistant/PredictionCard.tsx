@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Prediction } from "@/types";
-import ConfidenceBadge from "@/components/assistant/ConfidenceBadge";
-import TrendIndicator from "@/components/assistant/TrendIndicator";
+import {
+  formatPercent,
+  safeText,
+} from "@/components/assistant/presentation-formatters";
 
 type PredictionCardProps = {
   prediction: Prediction;
@@ -13,7 +15,13 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
   const isHighProbability = prediction.probability >= 60;
   const isRisky =
     prediction.probability >= 50 &&
-    prediction.name.toLowerCase().includes("cartao");
+    safeText(prediction.name, "").toLowerCase().includes("cartao");
+
+  const nameText = safeText(prediction.name, "Cenario indisponivel");
+  const summaryText = safeText(
+    prediction.summary,
+    "Sem contexto suficiente para resumir este cenario no momento.",
+  );
 
   useEffect(() => {
     if (previousProbability.current !== prediction.probability) {
@@ -42,11 +50,11 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
       }}
     >
       <p className="mb-2 text-[11px] uppercase tracking-wide text-slate-400">
-        Cenario mais provavel agora
+        Previsao
       </p>
       <div className="flex items-start justify-between gap-3">
         <h3 className="max-w-[70%] text-sm font-semibold text-white">
-          {prediction.name}
+          {nameText}
         </h3>
         <span
           className={`rounded-lg border px-2 py-1 text-2xl font-bold transition-all duration-300 ${
@@ -57,21 +65,11 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
             background: "rgba(16,185,129,0.1)",
           }}
         >
-          {prediction.probability}%
+          {formatPercent(prediction.probability, "0%")}
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <ConfidenceBadge level={prediction.confidence} />
-        <TrendIndicator trend={prediction.trend} />
-      </div>
-
-      <p className="mt-3 text-sm font-semibold text-slate-100">
-        {prediction.summary}
-      </p>
-      <p className="mt-2 rounded-md border border-slate-800 bg-slate-900/70 px-2 py-1.5 text-xs text-slate-400">
-        {prediction.why}
-      </p>
+      <p className="mt-3 text-sm font-semibold text-slate-100">{summaryText}</p>
     </article>
   );
 }
